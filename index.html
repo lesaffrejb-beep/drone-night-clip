@@ -116,14 +116,33 @@
       margin: 24px 0 16px 0;
       min-height: 20px;
       font-weight: 300;
+      transition: color 0.5s ease, opacity 0.3s ease;
     }
 
     #init-status.error {
       color: #ff6b6b;
+      animation: pulse-error 2s ease-in-out infinite;
     }
 
     #init-status.success {
       color: #51cf66;
+      animation: fade-in-success 0.6s ease;
+    }
+
+    @keyframes pulse-error {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    @keyframes fade-in-success {
+      0% {
+        opacity: 0;
+        transform: translateY(-5px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     /* Spinner */
@@ -135,15 +154,23 @@
       height: 32px;
       animation: spin 0.8s linear infinite;
       margin: 0 auto 16px auto;
+      box-shadow: 0 0 10px rgba(238, 238, 238, 0.2);
     }
 
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
     }
 
     .spinner.hidden {
-      display: none;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      pointer-events: none;
     }
 
     /* Buttons */
@@ -188,6 +215,7 @@
       flex-direction: column;
       gap: 12px;
       margin-top: 24px;
+      animation: fade-in-up 0.5s ease 0.2s backwards;
     }
 
     #splash-controls {
@@ -198,6 +226,18 @@
       flex-wrap: wrap;
       padding-top: 20px;
       border-top: 1px solid rgba(238, 238, 238, 0.1);
+      animation: fade-in-up 0.5s ease 0.4s backwards;
+    }
+
+    @keyframes fade-in-up {
+      0% {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     input[type="file"] {
@@ -305,26 +345,38 @@
     .instructions {
       font-size: 11px;
       color: #888;
-      line-height: 1.6;
-      margin-top: 16px;
+      line-height: 1.8;
+      margin-top: 20px;
       text-align: left;
       background: rgba(238, 238, 238, 0.03);
-      padding: 12px 16px;
-      border-radius: 6px;
+      padding: 16px 20px;
+      border-radius: 8px;
       border: 1px solid rgba(238, 238, 238, 0.08);
+      animation: fade-in-up 0.6s ease;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
 
     .instructions code {
       background: rgba(0, 0, 0, 0.5);
-      padding: 2px 6px;
-      border-radius: 3px;
+      padding: 3px 8px;
+      border-radius: 4px;
       font-size: 10px;
       color: #51cf66;
+      font-family: 'Courier New', monospace;
+      border: 1px solid rgba(81, 207, 102, 0.2);
     }
 
     .instructions strong {
       color: #fff;
       font-weight: 500;
+      display: inline-block;
+      margin-top: 8px;
+    }
+
+    .instructions br + br {
+      display: block;
+      content: "";
+      margin-top: 4px;
     }
   </style>
 </head>
