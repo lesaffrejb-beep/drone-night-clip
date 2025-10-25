@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Drone Night POV</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #000;
+      font-family: 'Courier New', monospace;
+      color: #e0e0e0;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    #container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* 9:16 responsive canvas container */
+    #canvas-wrapper {
+      position: relative;
+      max-width: 100vw;
+      max-height: 100vh;
+      aspect-ratio: 9 / 16;
+      background: #000;
+      box-shadow: 0 0 40px rgba(0, 255, 255, 0.3);
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* UI Overlay */
+    #ui-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .ui-panel {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 12px 16px;
+      border-radius: 4px;
+      pointer-events: auto;
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(0, 255, 255, 0.3);
+    }
+
+    #controls {
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      max-width: 90%;
+    }
+
+    #hud {
+      top: 20px;
+      left: 20px;
+      font-size: 11px;
+      line-height: 1.6;
+      min-width: 200px;
+      display: none;
+    }
+
+    #hud.visible {
+      display: block;
+    }
+
+    #hud .label {
+      color: #00ffff;
+      font-weight: bold;
+    }
+
+    button, input[type="file"] {
+      background: rgba(0, 50, 50, 0.8);
+      color: #00ffff;
+      border: 1px solid #00ffff;
+      padding: 8px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      background: rgba(0, 100, 100, 0.9);
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    }
+
+    button:active {
+      transform: scale(0.95);
+    }
+
+    button.recording {
+      background: rgba(150, 0, 0, 0.8);
+      border-color: #ff3333;
+      color: #ff3333;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    #preset-select {
+      background: rgba(0, 50, 50, 0.8);
+      color: #00ffff;
+      border: 1px solid #00ffff;
+      padding: 8px 14px;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    input[type="file"] {
+      font-size: 11px;
+      padding: 6px 10px;
+    }
+
+    #loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 18px;
+      color: #00ffff;
+      text-align: center;
+      z-index: 100;
+    }
+
+    #loading.hidden {
+      display: none;
+    }
+
+    .spinner {
+      border: 3px solid rgba(0, 255, 255, 0.3);
+      border-top: 3px solid #00ffff;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Keyboard shortcuts help */
+    #help {
+      top: 20px;
+      right: 20px;
+      font-size: 10px;
+      line-height: 1.5;
+      max-width: 180px;
+    }
+
+    #help .key {
+      display: inline-block;
+      background: rgba(0, 255, 255, 0.2);
+      padding: 2px 6px;
+      border-radius: 3px;
+      margin-right: 4px;
+      color: #00ffff;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="canvas-wrapper">
+      <canvas id="canvas"></canvas>
+
+      <div id="ui-overlay">
+        <!-- Loading indicator -->
+        <div id="loading">
+          <div class="spinner"></div>
+          <div>Loading scene...</div>
+        </div>
+
+        <!-- HUD (toggle with H) -->
+        <div id="hud" class="ui-panel">
+          <div><span class="label">TIME:</span> <span id="hud-time">0.0s</span></div>
+          <div><span class="label">SHOT:</span> <span id="hud-shot">-</span></div>
+          <div><span class="label">FPS:</span> <span id="hud-fps">60</span></div>
+          <div><span class="label">SPEED:</span> <span id="hud-speed">1.0x</span></div>
+          <div><span class="label">FOV:</span> <span id="hud-fov">60°</span></div>
+          <div><span class="label">BLOOM:</span> <span id="hud-bloom">0.0</span></div>
+          <div><span class="label">AUDIO:</span> <span id="hud-audio">No</span></div>
+        </div>
+
+        <!-- Keyboard shortcuts help -->
+        <div id="help" class="ui-panel">
+          <div><span class="key">SPACE</span> Play/Pause</div>
+          <div><span class="key">,</span> <span class="key">.</span> Speed ±</div>
+          <div><span class="key">H</span> Toggle HUD</div>
+          <div><span class="key">R</span> Restart</div>
+        </div>
+
+        <!-- Controls -->
+        <div id="controls" class="ui-panel">
+          <button id="btn-play">▶ Play</button>
+          <button id="btn-record">⏺ Record 25fps</button>
+          <input type="file" id="input-audio" accept="audio/*" title="Load Audio">
+          <select id="preset-select">
+            <option value="">Default</option>
+            <option value="presets/soft.json">Soft</option>
+            <option value="presets/intense.json">Intense</option>
+            <option value="presets/dark.json">Very Dark</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Three.js and postprocessing from CDN -->
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/three@0.160.0/examples/js/postprocessing/EffectComposer.js"></script>
+  <script src="https://unpkg.com/three@0.160.0/examples/js/postprocessing/RenderPass.js"></script>
+  <script src="https://unpkg.com/three@0.160.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+  <script src="https://unpkg.com/three@0.160.0/examples/js/shaders/CopyShader.js"></script>
+  <script src="https://unpkg.com/three@0.160.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
+  <script src="https://unpkg.com/three@0.160.0/examples/js/postprocessing/ShaderPass.js"></script>
+
+  <!-- Main application -->
+  <script src="src/app.js"></script>
+
+  <!-- Canvas 2D fallback (loaded if WebGL fails) -->
+  <script src="src/fallback2d.js"></script>
+</body>
+</html>

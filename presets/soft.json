@@ -1,0 +1,84 @@
+{
+  "meta": {
+    "title": "Drone Night POV - Soft",
+    "duration": 18,
+    "bpm": 75,
+    "seed": 42
+  },
+  "beats": [
+    0, 0.8, 1.6, 2.4, 3.2, 4.0, 4.8, 5.6, 6.4, 7.2,
+    8.0, 8.8, 9.6, 10.4, 11.2, 12.0, 12.8, 13.6, 14.4, 15.2, 16.0, 16.8, 17.6
+  ],
+  "shots": [
+    {
+      "name": "Survol",
+      "time": [0, 6],
+      "path": {
+        "type": "catmullrom",
+        "points": [
+          [-40, 18, 80],
+          [-20, 20, 60],
+          [10, 22, 55],
+          [30, 24, 45]
+        ]
+      },
+      "camera": {
+        "fov": [50, 55],
+        "rollDeg": [-1, 1],
+        "speedMul": 0.8
+      },
+      "fx": {
+        "bloom": [0.15, 0.18],
+        "vignette": [0.15, 0.18],
+        "neonPulse": 0.05
+      }
+    },
+    {
+      "name": "Plongee",
+      "time": [6, 12],
+      "path": {
+        "type": "catmullrom",
+        "points": [
+          [30, 24, 45],
+          [22, 14, 30],
+          [15, 9, 18],
+          [10, 5, 10]
+        ]
+      },
+      "camera": {
+        "fov": [55, 65],
+        "rollDeg": [0, 2],
+        "speedMul": 1.0
+      },
+      "fx": {
+        "bloom": [0.18, 0.22],
+        "vignette": [0.18, 0.22],
+        "neonPulse": 0.1
+      }
+    },
+    {
+      "name": "SousPont",
+      "time": [12, 18],
+      "path": {
+        "type": "catmullrom",
+        "points": [
+          [10, 5, 10],
+          [8, 4, 8],
+          [6, 3, 6],
+          [4, 3, 8]
+        ]
+      },
+      "camera": {
+        "fov": [65, 60],
+        "rollDeg": [2, 0],
+        "speedMul": 0.8
+      },
+      "fx": {
+        "bloom": [0.22, 0.2],
+        "vignette": [0.25, 0.4],
+        "neonPulse": 0.15,
+        "fade": [17.5, 18.0]
+      }
+    }
+  ]
+}
