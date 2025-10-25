@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Drone Night POV</title>
+  <title>Drone Night POV - V2 B&W</title>
   <style>
     * {
       margin: 0;
@@ -13,8 +13,8 @@
 
     body {
       background: #000;
-      font-family: 'Courier New', monospace;
-      color: #e0e0e0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      color: #eee;
       overflow: hidden;
       display: flex;
       justify-content: center;
@@ -38,7 +38,8 @@
       max-height: 100vh;
       aspect-ratio: 9 / 16;
       background: #000;
-      box-shadow: 0 0 40px rgba(0, 255, 255, 0.3);
+      box-shadow: 0 0 60px rgba(238, 238, 238, 0.1);
+      border: 1px solid rgba(238, 238, 238, 0.05);
     }
 
     canvas {
@@ -60,68 +61,99 @@
 
     .ui-panel {
       position: absolute;
-      background: rgba(0, 0, 0, 0.7);
-      padding: 12px 16px;
-      border-radius: 4px;
+      background: rgba(0, 0, 0, 0.85);
+      padding: 16px 20px;
+      border-radius: 6px;
       pointer-events: auto;
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(0, 255, 255, 0.3);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(238, 238, 238, 0.15);
     }
 
-    #controls {
-      bottom: 20px;
+    /* Splash / Welcome Card */
+    #splash {
+      position: absolute;
+      top: 50%;
       left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      justify-content: center;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.95);
+      border: 1px solid rgba(238, 238, 238, 0.2);
+      border-radius: 8px;
+      padding: 32px 40px;
+      text-align: center;
+      min-width: 300px;
       max-width: 90%;
+      z-index: 100;
+      transition: opacity 0.3s, transform 0.3s;
     }
 
-    #hud {
-      top: 20px;
-      left: 20px;
-      font-size: 11px;
-      line-height: 1.6;
-      min-width: 200px;
-      display: none;
+    #splash.hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, -50%) scale(0.95);
     }
 
-    #hud.visible {
-      display: block;
+    #splash h1 {
+      font-size: 24px;
+      font-weight: 300;
+      letter-spacing: 2px;
+      margin-bottom: 12px;
+      color: #eee;
     }
 
-    #hud .label {
-      color: #00ffff;
-      font-weight: bold;
+    #splash .subtitle {
+      font-size: 12px;
+      color: #999;
+      margin-bottom: 24px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
 
-    button, input[type="file"] {
-      background: rgba(0, 50, 50, 0.8);
-      color: #00ffff;
-      border: 1px solid #00ffff;
-      padding: 8px 14px;
+    #splash-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    #splash-controls {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    /* Buttons */
+    button, input[type="file"]::file-selector-button {
+      background: rgba(238, 238, 238, 0.1);
+      color: #eee;
+      border: 1px solid rgba(238, 238, 238, 0.3);
+      padding: 10px 20px;
       border-radius: 4px;
       cursor: pointer;
       font-family: inherit;
-      font-size: 12px;
+      font-size: 14px;
       transition: all 0.2s;
+      font-weight: 400;
     }
 
-    button:hover {
-      background: rgba(0, 100, 100, 0.9);
-      box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+    button:hover, input[type="file"]::file-selector-button:hover {
+      background: rgba(238, 238, 238, 0.2);
+      border-color: rgba(238, 238, 238, 0.5);
     }
 
     button:active {
-      transform: scale(0.95);
+      transform: scale(0.98);
+    }
+
+    button.primary {
+      background: rgba(238, 238, 238, 0.15);
+      border-color: rgba(238, 238, 238, 0.4);
     }
 
     button.recording {
-      background: rgba(150, 0, 0, 0.8);
-      border-color: #ff3333;
-      color: #ff3333;
+      background: rgba(255, 255, 255, 0.2);
+      border-color: #eee;
       animation: pulse 1s infinite;
     }
 
@@ -131,9 +163,9 @@
     }
 
     #preset-select {
-      background: rgba(0, 50, 50, 0.8);
-      color: #00ffff;
-      border: 1px solid #00ffff;
+      background: rgba(238, 238, 238, 0.1);
+      color: #eee;
+      border: 1px solid rgba(238, 238, 238, 0.3);
       padding: 8px 14px;
       border-radius: 4px;
       font-family: inherit;
@@ -143,32 +175,60 @@
 
     input[type="file"] {
       font-size: 11px;
-      padding: 6px 10px;
+      padding: 6px;
+      color: #eee;
+      border: 1px solid rgba(238, 238, 238, 0.3);
+      border-radius: 4px;
+      background: rgba(238, 238, 238, 0.05);
     }
 
-    #loading {
-      position: absolute;
-      top: 50%;
+    /* HUD */
+    #hud {
+      top: 20px;
+      left: 20px;
+      font-size: 11px;
+      line-height: 1.8;
+      min-width: 150px;
+      display: none;
+      font-variant-numeric: tabular-nums;
+    }
+
+    #hud.visible {
+      display: block;
+    }
+
+    #hud .label {
+      color: #999;
+      font-weight: 500;
+      display: inline-block;
+      width: 50px;
+    }
+
+    /* Status messages */
+    #status {
+      bottom: 20px;
       left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 18px;
-      color: #00ffff;
+      transform: translateX(-50%);
+      font-size: 11px;
+      color: #999;
       text-align: center;
-      z-index: 100;
-    }
-
-    #loading.hidden {
+      min-width: 200px;
       display: none;
     }
 
+    #status.visible {
+      display: block;
+    }
+
+    /* Loading spinner */
     .spinner {
-      border: 3px solid rgba(0, 255, 255, 0.3);
-      border-top: 3px solid #00ffff;
+      border: 2px solid rgba(238, 238, 238, 0.2);
+      border-top: 2px solid #eee;
       border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
-      margin: 20px auto;
+      width: 24px;
+      height: 24px;
+      animation: spin 0.8s linear infinite;
+      margin: 16px auto;
     }
 
     @keyframes spin {
@@ -176,113 +236,88 @@
       100% { transform: rotate(360deg); }
     }
 
-    /* Keyboard shortcuts help */
+    /* Help panel */
     #help {
       top: 20px;
       right: 20px;
       font-size: 10px;
-      line-height: 1.5;
-      max-width: 180px;
+      line-height: 1.6;
+      max-width: 140px;
     }
 
     #help .key {
       display: inline-block;
-      background: rgba(0, 255, 255, 0.2);
+      background: rgba(238, 238, 238, 0.15);
       padding: 2px 6px;
       border-radius: 3px;
       margin-right: 4px;
-      color: #00ffff;
-      font-weight: bold;
-    }
-
-    /* Local mode indicator */
-    #local-mode {
-      position: absolute;
-      bottom: 20px;
-      right: 20px;
-      background: rgba(255, 165, 0, 0.15);
-      border: 1px solid rgba(255, 165, 0, 0.4);
-      padding: 8px 12px;
-      border-radius: 4px;
-      font-size: 10px;
-      color: #ffaa44;
-      display: none;
-      pointer-events: none;
-    }
-
-    #local-mode.visible {
-      display: block;
+      color: #eee;
+      font-weight: 500;
+      font-size: 9px;
     }
   </style>
 </head>
 <body>
-  <!-- Embedded scene data for local file:// usage -->
-  <script type="application/json" id="scene-default">
-{"meta":{"title":"Drone Night POV","duration":18,"bpm":90,"seed":42},"beats":[0,0.67,1.33,2.0,2.67,3.33,4.0,4.67,5.33,6.0,6.67,7.33,8.0,8.67,9.33,10.0,10.67,11.33,12.0,12.67,13.33,14.0,14.67,15.33,16.0,16.67,17.33],"shots":[{"name":"Survol","time":[0,6],"path":{"type":"catmullrom","points":[[-40,18,80],[-20,20,60],[10,22,55],[30,24,45]]},"camera":{"fov":[55,60],"rollDeg":[-2,2],"speedMul":1.0},"fx":{"bloom":[0.2,0.25],"vignette":[0.2,0.25],"neonPulse":0.1}},{"name":"Plongee","time":[6,12],"path":{"type":"catmullrom","points":[[30,24,45],[22,14,30],[15,9,18],[10,5,10]]},"camera":{"fov":[60,74],"rollDeg":[0,3],"speedMul":1.4},"fx":{"bloom":[0.25,0.35],"vignette":[0.26,0.3],"neonPulse":0.25}},{"name":"SousPont","time":[12,18],"path":{"type":"catmullrom","points":[[10,5,10],[8,4,8],[6,3,6],[4,3,8]]},"camera":{"fov":[72,66],"rollDeg":[3,0],"speedMul":1.0},"fx":{"bloom":[0.35,0.3],"vignette":[0.32,0.5],"neonPulse":0.35,"fade":[17.5,18.0]}}]}
+  <!-- Embedded default scene for failsafe operation -->
+  <script type="application/json" id="scene-inline">
+{
+  "meta": {"title": "Drone Night POV - B&W", "duration": 18, "bpm": 90, "seed": 42},
+  "beats": [0, 0.67, 1.33, 2.0, 2.67, 3.33, 4.0, 4.67, 5.33, 6.0, 6.67, 7.33, 8.0, 8.67, 9.33, 10.0, 10.67, 11.33, 12.0, 12.67, 13.33, 14.0, 14.67, 15.33, 16.0, 16.67, 17.33],
+  "shots": [
+    {"name": "Survol", "time": [0, 6], "path": {"type": "catmullrom", "points": [[-40, 18, 80], [-20, 20, 60], [10, 22, 55], [30, 24, 45]]}, "camera": {"fov": [55, 60], "rollDeg": [-2, 2], "speedMul": 1.0}, "fx": {"bloom": [0.08, 0.10], "vignette": [0.25, 0.30], "neonPulse": 0.05}},
+    {"name": "Plongee", "time": [6, 12], "path": {"type": "catmullrom", "points": [[30, 24, 45], [22, 14, 30], [15, 9, 18], [10, 5, 10]]}, "camera": {"fov": [60, 74], "rollDeg": [0, 3], "speedMul": 1.4}, "fx": {"bloom": [0.10, 0.15], "vignette": [0.30, 0.35], "neonPulse": 0.10}},
+    {"name": "SousPont", "time": [12, 18], "path": {"type": "catmullrom", "points": [[10, 5, 10], [8, 4, 8], [6, 3, 6], [4, 3, 8]]}, "camera": {"fov": [72, 66], "rollDeg": [3, 0], "speedMul": 1.0}, "fx": {"bloom": [0.15, 0.12], "vignette": [0.40, 0.60], "neonPulse": 0.15, "fade": [17.5, 18.0]}}
+  ]
+}
   </script>
 
-  <script type="application/json" id="scene-soft">
-{"meta":{"title":"Drone Night POV - Soft","duration":18,"bpm":75,"seed":42},"beats":[0,0.8,1.6,2.4,3.2,4.0,4.8,5.6,6.4,7.2,8.0,8.8,9.6,10.4,11.2,12.0,12.8,13.6,14.4,15.2,16.0,16.8,17.6],"shots":[{"name":"Survol","time":[0,6],"path":{"type":"catmullrom","points":[[-40,18,80],[-20,20,60],[10,22,55],[30,24,45]]},"camera":{"fov":[50,55],"rollDeg":[-1,1],"speedMul":0.8},"fx":{"bloom":[0.15,0.18],"vignette":[0.15,0.18],"neonPulse":0.05}},{"name":"Plongee","time":[6,12],"path":{"type":"catmullrom","points":[[30,24,45],[22,14,30],[15,9,18],[10,5,10]]},"camera":{"fov":[55,65],"rollDeg":[0,2],"speedMul":1.0},"fx":{"bloom":[0.18,0.22],"vignette":[0.18,0.22],"neonPulse":0.1}},{"name":"SousPont","time":[12,18],"path":{"type":"catmullrom","points":[[10,5,10],[8,4,8],[6,3,6],[4,3,8]]},"camera":{"fov":[65,60],"rollDeg":[2,0],"speedMul":0.8},"fx":{"bloom":[0.22,0.2],"vignette":[0.25,0.4],"neonPulse":0.15,"fade":[17.5,18.0]}}]}
-  </script>
-
-  <script type="application/json" id="scene-intense">
-{"meta":{"title":"Drone Night POV - Intense","duration":18,"bpm":120,"seed":42},"beats":[0,0.5,1.0,1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.5,6.0,6.5,7.0,7.5,8.0,8.5,9.0,9.5,10.0,10.5,11.0,11.5,12.0,12.5,13.0,13.5,14.0,14.5,15.0,15.5,16.0,16.5,17.0,17.5],"shots":[{"name":"Survol","time":[0,6],"path":{"type":"catmullrom","points":[[-40,18,80],[-20,20,60],[10,22,55],[30,24,45]]},"camera":{"fov":[60,70],"rollDeg":[-4,4],"speedMul":1.4},"fx":{"bloom":[0.3,0.4],"vignette":[0.25,0.3],"neonPulse":0.3}},{"name":"Plongee","time":[6,12],"path":{"type":"catmullrom","points":[[30,24,45],[22,14,30],[15,9,18],[10,5,10]]},"camera":{"fov":[70,85],"rollDeg":[0,5],"speedMul":1.8},"fx":{"bloom":[0.4,0.5],"vignette":[0.3,0.35],"neonPulse":0.4}},{"name":"SousPont","time":[12,18],"path":{"type":"catmullrom","points":[[10,5,10],[8,4,8],[6,3,6],[4,3,8]]},"camera":{"fov":[85,75],"rollDeg":[5,-2],"speedMul":1.2},"fx":{"bloom":[0.5,0.45],"vignette":[0.4,0.6],"neonPulse":0.5,"fade":[17.5,18.0]}}]}
-  </script>
-
-  <script type="application/json" id="scene-dark">
-{"meta":{"title":"Drone Night POV - Very Dark","duration":18,"bpm":60,"seed":42},"beats":[0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0,12.0,13.0,14.0,15.0,16.0,17.0],"shots":[{"name":"Survol","time":[0,6],"path":{"type":"catmullrom","points":[[-40,18,80],[-20,20,60],[10,22,55],[30,24,45]]},"camera":{"fov":[52,58],"rollDeg":[-1.5,1.5],"speedMul":0.7},"fx":{"bloom":[0.1,0.15],"vignette":[0.35,0.4],"neonPulse":0.05}},{"name":"Plongee","time":[6,12],"path":{"type":"catmullrom","points":[[30,24,45],[22,14,30],[15,9,18],[10,5,10]]},"camera":{"fov":[58,68],"rollDeg":[0,2.5],"speedMul":1.0},"fx":{"bloom":[0.15,0.2],"vignette":[0.4,0.45],"neonPulse":0.1}},{"name":"SousPont","time":[12,18],"path":{"type":"catmullrom","points":[[10,5,10],[8,4,8],[6,3,6],[4,3,8]]},"camera":{"fov":[68,62],"rollDeg":[2.5,0],"speedMul":0.8},"fx":{"bloom":[0.2,0.18],"vignette":[0.5,0.75],"neonPulse":0.15,"fade":[17.0,18.0]}}]}
-  </script>
-
-  <script type="application/json" id="scene-insane">
-{"meta":{"title":"Drone Night POV - INSANE","duration":20,"bpm":140,"seed":666},"beats":[0,0.43,0.86,1.29,1.71,2.14,2.57,3.0,3.43,3.86,4.29,4.71,5.14,5.57,6.0,6.43,6.86,7.29,7.71,8.14,8.57,9.0,9.43,9.86,10.29,10.71,11.14,11.57,12.0,12.43,12.86,13.29,13.71,14.14,14.57,15.0,15.43,15.86,16.29,16.71,17.14,17.57,18.0,18.43,18.86,19.29,19.71],"shots":[{"name":"Survol","time":[0,5],"path":{"type":"catmullrom","points":[[-40,22,80],[-25,24,65],[5,26,58],[30,28,45]]},"camera":{"fov":[62,72],"rollDeg":[-6,6],"speedMul":1.6,"oscillation":0.3},"fx":{"bloom":[0.35,0.45],"vignette":[0.25,0.3],"neonPulse":0.4,"chromaticAberration":0.002}},{"name":"Plongee","time":[5,12],"path":{"type":"catmullrom","points":[[30,28,45],[22,16,32],[15,8,20],[10,4,10]]},"camera":{"fov":[72,95],"rollDeg":[6,10],"speedMul":2.2,"oscillation":0.5},"fx":{"bloom":[0.45,0.6],"vignette":[0.3,0.4],"neonPulse":0.6,"chromaticAberration":0.004,"motionStreak":0.3}},{"name":"SousPont","time":[12,20],"path":{"type":"catmullrom","points":[[10,4,10],[8,2.5,8],[6,1.5,6],[4,2,8],[2,4,12]]},"camera":{"fov":[95,80],"rollDeg":[10,-5],"speedMul":1.3,"oscillation":0.4},"fx":{"bloom":[0.6,0.55],"vignette":[0.45,0.75],"neonPulse":0.7,"chromaticAberration":0.003,"motionStreak":0.2,"fade":[19.0,20.0]}}]}
-  </script>
   <div id="container">
     <div id="canvas-wrapper">
       <canvas id="canvas"></canvas>
 
       <div id="ui-overlay">
-        <!-- Loading indicator -->
-        <div id="loading">
-          <div class="spinner"></div>
-          <div>Loading scene...</div>
+        <!-- Splash / Welcome Screen -->
+        <div id="splash">
+          <h1>DRONE NIGHT POV</h1>
+          <div class="subtitle">Monochrome Edition</div>
+
+          <div id="splash-buttons">
+            <button id="btn-start" class="primary">▶ Start</button>
+          </div>
+
+          <div id="splash-controls">
+            <input type="file" id="input-audio-splash" accept="audio/*" title="Load Audio">
+            <select id="preset-select">
+              <option value="">Default</option>
+              <option value="insane">Insane</option>
+            </select>
+          </div>
+
+          <div style="margin-top: 20px; font-size: 10px; color: #666;">
+            <div class="spinner"></div>
+            <div id="init-status">Initializing...</div>
+          </div>
         </div>
 
         <!-- HUD (toggle with H) -->
         <div id="hud" class="ui-panel">
-          <div><span class="label">TIME:</span> <span id="hud-time">0.0s</span></div>
-          <div><span class="label">SHOT:</span> <span id="hud-shot">-</span></div>
-          <div><span class="label">FPS:</span> <span id="hud-fps">60</span></div>
-          <div><span class="label">SPEED:</span> <span id="hud-speed">1.0x</span></div>
-          <div><span class="label">FOV:</span> <span id="hud-fov">60°</span></div>
-          <div><span class="label">BLOOM:</span> <span id="hud-bloom">0.0</span></div>
-          <div><span class="label">AUDIO:</span> <span id="hud-audio">No</span></div>
+          <div><span class="label">TIME</span> <span id="hud-time">0.0s</span></div>
+          <div><span class="label">SHOT</span> <span id="hud-shot">-</span></div>
+          <div><span class="label">FPS</span> <span id="hud-fps">60</span></div>
+          <div><span class="label">SPEED</span> <span id="hud-speed">1.0x</span></div>
         </div>
 
-        <!-- Keyboard shortcuts help -->
+        <!-- Keyboard shortcuts -->
         <div id="help" class="ui-panel">
           <div><span class="key">SPACE</span> Play/Pause</div>
-          <div><span class="key">,</span> <span class="key">.</span> Speed ±</div>
-          <div><span class="key">H</span> Toggle HUD</div>
+          <div><span class="key">,</span> <span class="key">.</span> Speed</div>
+          <div><span class="key">H</span> HUD</div>
           <div><span class="key">R</span> Restart</div>
         </div>
 
-        <!-- Controls -->
-        <div id="controls" class="ui-panel">
-          <button id="btn-play">▶ Play</button>
-          <button id="btn-record">⏺ Record 25fps</button>
-          <input type="file" id="input-audio" accept="audio/*" title="Load Audio">
-          <select id="preset-select">
-            <option value="">Default</option>
-            <option value="presets/soft.json">Soft</option>
-            <option value="presets/intense.json">Intense</option>
-            <option value="presets/dark.json">Very Dark</option>
-            <option value="presets/insane.json">INSANE</option>
-          </select>
-        </div>
-
-        <!-- Local mode indicator -->
-        <div id="local-mode">
-          📁 Local mode (inline scene)
+        <!-- Status bar -->
+        <div id="status" class="ui-panel">
+          <span id="status-text">Ready</span>
         </div>
       </div>
     </div>
@@ -300,7 +335,7 @@
   <!-- Main application -->
   <script src="src/app.js"></script>
 
-  <!-- Canvas 2D fallback (loaded if WebGL fails) -->
+  <!-- Canvas 2D fallback -->
   <script src="src/fallback2d.js"></script>
 </body>
 </html>

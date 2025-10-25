@@ -1,6 +1,6 @@
 {
   "meta": {
-    "title": "Drone Night POV - INSANE",
+    "title": "Drone Night POV - INSANE B&W",
     "duration": 20,
     "bpm": 140,
     "seed": 666
@@ -31,10 +31,9 @@
         "oscillation": 0.3
       },
       "fx": {
-        "bloom": [0.35, 0.45],
-        "vignette": [0.25, 0.3],
-        "neonPulse": 0.4,
-        "chromaticAberration": 0.002
+        "bloom": [0.12, 0.18],
+        "vignette": [0.30, 0.35],
+        "neonPulse": 0.15
       }
     },
     {
@@ -56,11 +55,9 @@
         "oscillation": 0.5
       },
       "fx": {
-        "bloom": [0.45, 0.6],
-        "vignette": [0.3, 0.4],
-        "neonPulse": 0.6,
-        "chromaticAberration": 0.004,
-        "motionStreak": 0.3
+        "bloom": [0.18, 0.22],
+        "vignette": [0.35, 0.45],
+        "neonPulse": 0.20
       }
     },
     {
@@ -83,11 +80,9 @@
         "oscillation": 0.4
       },
       "fx": {
-        "bloom": [0.6, 0.55],
-        "vignette": [0.45, 0.75],
-        "neonPulse": 0.7,
-        "chromaticAberration": 0.003,
-        "motionStreak": 0.2,
+        "bloom": [0.22, 0.20],
+        "vignette": [0.50, 0.70],
+        "neonPulse": 0.25,
         "fade": [19.0, 20.0]
       }
     }

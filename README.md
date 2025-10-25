@@ -1,60 +1,64 @@
-# 🌃 Drone Night POV
+# 🌃 Drone Night POV - V2 B&W Edition
 
-An immersive vertical (9:16) cinematic experience featuring a procedurally generated night city flythrough with audio-reactive visual effects. Built with Three.js and Canvas 2D fallback, designed for GitHub Pages.
+**Anti-Fragile** monochrome cinematic experience. Works everywhere: file://, GitHub Pages, or local server. Play button ALWAYS works.
 
-**NEW**: Works seamlessly in local file:// mode with embedded scene data - no server required!
+## ✨ V2 Features
 
-## ✨ Features
+### Anti-Fragile Design
+- **File:// Support**: Works by double-clicking index.html
+- **No Fetch Required**: Inline JSON fallback
+- **No Audio Required**: Beat timeline fallback
+- **Never Crashes**: Defensive checks everywhere
+- **[DRONE] Logging**: Full console diagnostics
 
-### Visual Effects
-- **Enhanced Post-Processing**: Bloom, vignette, film grain, and chromatic aberration
-- **Camera Micro-Oscillation**: Handheld feel with subtle shake on intense presets
-- **Rhythmic Jitter**: Camera pulses on beat hits for dynamic energy
-- **Teal & Amber Color Grade**: Cinematic color treatment with enhanced contrast
-- **Audio-Reactive FX**: Bass-driven bloom and grain that sync with your music
+### Visual Style
+- **Pure Monochrome**: Black (#000) to Ivory (#eee) only
+- **Strong Vignette**: Cinematic edge darkening
+- **Film Grain**: Subtle texture animation
+- **Subtle Bloom**: Avoids "milky" look
+- **High Contrast**: B&W optimized shader
 
-### Camera & Animation
-- **Cinematic Camera Path**: Smooth CatmullRom curve with 3 distinct shots
-- **Dynamic FOV & Roll**: Interpolated field of view (55°-95°) and camera roll (up to 10° in INSANE mode)
-- **Speed Variation**: Camera speed multipliers per shot for dramatic pacing
-- **Beat-Synced Motion**: Subtle jitter on musical beats
+### Camera
+- **3 Shots**: Survol → Plongée → SousPont
+- **CatmullRom Paths**: Smooth interpolation
+- **Dynamic FOV**: 55° to 74° (95° in Insane mode)
+- **Camera Roll**: ±3° (±10° in Insane mode)
+- **Beat Jitter**: Rhythmic micro-shake
 
-### Technical
-- **Procedural City**: Low-poly buildings with animated neon windows (cyan/amber palette)
-- **25fps Recording**: Export as high-quality .webm video (10 Mbps bitrate)
-- **Responsive 9:16**: Perfect vertical format optimized for mobile/social
-- **No Build Step**: Pure HTML/CSS/JS with CDN dependencies
-- **WebGL + 2D Fallback**: Gracefully degrades to Canvas 2D if WebGL unavailable
-- **Local File Mode**: Embedded scene data works with `file://` protocol
-- **5 Presets**: Default, Soft, Intense, Very Dark, and INSANE modes
+### Recording
+- **25fps Locked**: Canvas.captureStream(25)
+- **10 Mbps**: High quality .webm export
+- **Auto-restart**: Begins from t=0
 
 ## 🚀 Quick Start
 
-### Option A: Local File Mode (No Server)
+### 1. Local File Mode (Instant)
+**No server needed!**
 
-**Just downloaded the repo? It works instantly!**
+```bash
+# Just open the file
+open index.html  # macOS
+start index.html # Windows
+xdg-open index.html # Linux
+```
 
-1. Open `index.html` directly in your browser (double-click or drag-and-drop)
-2. You'll see a small "📁 Local mode (inline scene)" indicator
-3. All features work except external file loading
-4. All 5 presets are embedded and fully functional
+✓ Works immediately with embedded scene data
 
-**Note**: This mode uses embedded scene data. For the best experience and external preset loading, use Option B or C.
+### 2. GitHub Pages
 
-### Option B: GitHub Pages (Recommended)
+1. Go to repo **Settings** → **Pages**
+2. Source: `main` branch, `/` root
+3. Save
+4. URL: `https://<username>.github.io/drone-night-clip/`
 
-1. Go to your repository **Settings** → **Pages**
-2. Under **Source**, select `main` branch and `/` (root) directory
-3. Click **Save**
-4. Your site will be live at: `https://<your-username>.github.io/drone-night-clip/`
-
-### Option C: Local Server
-
-For local development with full file access:
+### 3. Local Server (Best Dev Experience)
 
 ```bash
 # Python 3
-python -m http.server 8000
+python3 -m http.server 8000
+
+# VS Code
+# Install "Live Server" extension, right-click index.html → Open with Live Server
 
 # Node.js
 npx http-server -p 8000
@@ -62,231 +66,146 @@ npx http-server -p 8000
 
 Then visit `http://localhost:8000`
 
-### Controls
+## 🎮 Controls
 
-Once running:
+### Splash Screen
+- **▶ Start**: Begin playback
+- **Load Audio**: Upload MP3/WAV/OGG
+- **Preset Dropdown**: Switch scenes
 
-**Controls:**
+### Keyboard (after Start)
 - **SPACE**: Play/Pause
-- **,** / **.**: Decrease/increase playback speed
-- **H**: Toggle HUD (shows time, FPS, effects info)
-- **R**: Restart from beginning
+- **H**: Toggle HUD
+- **,** / **.**: Speed -/+ (0.5x to 2.0x)
+- **R**: Restart
+- **Shift+S**: Screenshot (PNG)
 
-### 3. Add Custom Audio (Optional)
+## 🎥 Recording
 
-#### Option A: Runtime Upload
-1. Open the page
-2. Click **"Load Audio"** button
-3. Select your audio file (MP3, WAV, OGG)
+1. Click **"▶ Start"** to initialize
+2. Press **SPACE** or wait for auto-play
+3. To record: Reload page, click Start, press SPACE immediately
+4. Video saves as `.webm` in Downloads
 
-#### Option B: Static File
-1. Place your audio file in the `assets/` directory as `track.mp3`
-2. Modify `src/app.js` to auto-load it:
-   ```javascript
-   // Add after line ~200 (in setupAudio function):
-   fetch('assets/track.mp3')
-     .then(res => res.blob())
-     .then(blob => setupAudio(blob));
-   ```
+**Convert to MP4:**
+```bash
+ffmpeg -i drone-night-*.webm -c:v libx264 -crf 18 -preset slow output.mp4
+```
 
-**Audio Tips:**
-- Match the scene's BPM (default 90) for better sync
-- Duration should match `scene.json` duration (18 seconds)
-- Ambient/downtempo electronic works best
+## 🎨 Presets
 
-### 4. Try Different Presets
+| Preset | Duration | BPM | FOV | Roll | Vignette | Feel |
+|--------|----------|-----|-----|------|----------|------|
+| **Default** | 18s | 90 | 55°-74° | ±3° | 0.25-0.60 | Balanced |
+| **Insane** | 20s | 140 | 62°-95° | ±10° | 0.30-0.70 | Aggressive |
 
-Use the **Preset** dropdown in the UI to switch between:
-- **Default**: Balanced (scene.json) - BPM 90, 18s
-- **Soft**: Gentle camera, subtle FX (BPM 75, roll ±1°)
-- **Intense**: Fast-paced, strong bloom, dramatic roll (BPM 120, roll ±5°)
-- **Very Dark**: Slow, heavy vignette, minimal lighting (BPM 60)
-- **INSANE**: Extreme speed, FOV 62°→95°, roll up to 10°, chromatic aberration (BPM 140, 20s)
+## 🛠️ Customization
 
-## 🎬 Recording Your Animation
-
-1. Click **"⏺ Record 25fps"** button
-2. The animation will restart and begin recording
-3. Wait for the full duration to complete
-4. Click **"⏹ Stop Recording"** or let it finish automatically
-5. The video file (`drone-night-clip-XXXXX.webm`) will download automatically
-
-**Recording Notes:**
-- Frame rate is locked to 25fps for smooth export
-- Output resolution matches your canvas size (scales to fit 9:16 aspect ratio)
-- For best quality, use fullscreen mode before recording
-- Typical file size: ~5-15 MB for 18 seconds
-
-## ⚙️ Customization
-
-### Editing the Scene
-
-All scene configuration is in `scene.json`:
+### scene.json Structure
 
 ```json
 {
   "meta": {
-    "title": "Drone Night POV",
-    "duration": 18,        // Total duration in seconds
-    "bpm": 90,             // Beats per minute (for beat detection)
-    "seed": 42             // Random seed for city generation
+    "title": "Scene Name",
+    "duration": 18,
+    "bpm": 90,
+    "seed": 42
   },
-  "beats": [...],          // Timeline of beat moments
-  "shots": [...]           // Camera path segments with FX config
+  "beats": [0, 0.67, 1.33, ...],
+  "shots": [
+    {
+      "name": "Shot Name",
+      "time": [start, end],
+      "path": {
+        "type": "catmullrom",
+        "points": [[x,y,z], ...]
+      },
+      "camera": {
+        "fov": [start, end],
+        "rollDeg": [start, end],
+        "speedMul": 1.0,
+        "oscillation": 0.0
+      },
+      "fx": {
+        "bloom": [start, end],
+        "vignette": [start, end],
+        "neonPulse": 0.1,
+        "fade": [start, end]
+      }
+    }
+  ]
 }
 ```
 
-#### Shot Structure:
-- **time**: `[start, end]` in seconds
-- **path.points**: Array of `[x, y, z]` coordinates for CatmullRom curve
-- **camera.fov**: `[start, end]` field of view (degrees)
-- **camera.rollDeg**: `[start, end]` camera roll angle
-- **camera.speedMul**: Speed multiplier for this segment
-- **fx.bloom**: `[start, end]` bloom intensity
-- **fx.vignette**: `[start, end]` vignette strength
-- **fx.neonPulse**: Audio reactivity multiplier
-- **fx.fade**: Optional `[start, end]` for fade-to-black
+### Add Custom Preset
 
-### Creating Custom Presets
-
-1. Copy `scene.json` to `presets/your-preset.json`
-2. Modify the values (camera path, FX, timing, etc.)
-3. Add it to the dropdown in `index.html`:
+1. Create `presets/my-preset.json`
+2. Edit `index.html` line 291:
    ```html
-   <option value="presets/your-preset.json">Your Preset</option>
+   <option value="my-preset">My Preset</option>
    ```
+3. Update `src/app.js` line 883 preset loader
 
-### Changing the City
+## 🧪 Troubleshooting
 
-The city is procedurally generated in `src/app.js` (function `setupCity()`):
-- Modify `gridSize` and `blockSize` for city density
-- Adjust building `height` ranges for skyline variation
-- Change `seed` in `scene.json` for different layouts
-- Tweak neon colors by editing the `color` values
+### Play button does nothing
+- **Fixed in V2!** Init is two-phase, UI always connects
+- Check console for `[DRONE]` logs
+- Press F12, look for errors
 
-### Adjusting Post-Processing
+### Black screen
+- Check WebGL support: Visit `https://get.webgl.org/`
+- Try Chrome/Firefox (latest versions)
+- 2D fallback should auto-activate
 
-In `src/app.js` (function `setupPostProcessing()`):
+### File:// mode: Presets don't load
+- Expected behavior - presets require HTTP
+- Use inline scene (auto-selected)
+- Or serve via local server
 
-```javascript
-bloomPass = new THREE.UnrealBloomPass(
-  new THREE.Vector2(width, height),
-  0.3,  // Bloom strength
-  0.4,  // Bloom radius
-  0.85  // Threshold (higher = less bloom)
-);
-```
+### Audio desync
+- Reload page and try again
+- Check audio file duration matches scene
+- Try different audio file
 
-Vignette and grain are controlled in the custom shader uniforms.
+### Recording failed
+- Chrome works best (MediaRecorder support)
+- Check disk space
+- Try shorter scene (< 30s)
 
-## 📁 Project Structure
+## 📊 Technical Details
 
-```
-/
-├── index.html           # Main page with UI and CDN scripts
-├── scene.json           # Default scene configuration
-├── src/
-│   ├── app.js           # Three.js renderer (main logic)
-│   └── fallback2d.js    # Canvas 2D fallback renderer
-├── assets/
-│   └── README.md        # Audio and texture instructions
-├── presets/
-│   ├── soft.json        # Gentle preset
-│   ├── intense.json     # Energetic preset
-│   └── dark.json        # Moody preset
-└── README.md            # This file
-```
+### B&W Shader
+- **Luminance conversion**: `dot(rgb, vec3(0.299, 0.587, 0.114))`
+- **Grain**: Temporal + spatial noise
+- **Vignette**: Smoothstep radial gradient
+- **Contrast**: `(color - 0.5) * 1.2 + 0.5`
 
-## 🛠️ Development
+### Performance
+- **Target**: 60 FPS playback, 25 FPS recording
+- **Instancing**: Shared geometries for windows
+- **Culling**: Fog hides distant objects
+- **No allocations**: Reused buffers in render loop
 
-### Local Testing
-
-**Three ways to run locally:**
-
-1. **Direct file:// (easiest)**: Just open `index.html` - all features work with embedded scenes
-2. **Python server**: `python -m http.server 8000` then visit `http://localhost:8000`
-3. **Node server**: `npx http-server -p 8000` then visit `http://localhost:8000`
-
-### How File Mode Works
-
-When opened via `file://` protocol:
-- Automatic detection of local mode
-- Falls back to embedded `<script type="application/json">` scene data
-- All 5 presets work seamlessly
-- Small indicator appears: "📁 Local mode (inline scene)"
-- No network requests, works 100% offline
-
-### Browser Compatibility
-
-**Recommended**: Chrome, Edge, Firefox, Safari (latest versions)
-
-- **WebGL Required**: For full Three.js experience
-- **Fallback Available**: Canvas 2D version for older browsers
-- **Recording Requires**: MediaRecorder API support (Chrome/Firefox/Edge)
-
-### Performance Tips
-
-- Lower resolution by zooming out before running
-- Close other tabs/applications
-- Use hardware acceleration in browser settings
-- Recording at 25fps is less demanding than 60fps playback
-
-## 🎨 Visual Style
-
-The project aims for a **digital art / night / mystery** aesthetic:
-
-- **Color Palette**: Blacks, dark blues, cyan accents (#00ffff), warm amber (#ffaa44)
-- **Lighting**: Minimal ambient, subtle neon glow, atmospheric fog
-- **Effects**: Film grain, heavy vignette, selective bloom on neon elements
-- **Composition**: Low-angle urban canyon, bridge underpass, architectural framing
-
-Inspiration: Blade Runner, Ghost in the Shell, cyberpunk night photography
-
-## 🐛 Troubleshooting
-
-### Page won't load / Fetch errors
-**Solution**: Open directly via `file://` - the page auto-detects and uses embedded scenes. Or serve via HTTP as described above.
-
-### "WebGL not supported" message
-- Use a modern browser (Chrome/Firefox/Edge)
-- Enable hardware acceleration in browser settings
-- Falls back to 2D Canvas automatically
-
-### Audio not syncing
-- Check that audio file duration matches scene duration (18s default, 20s for INSANE)
-- Verify BPM in `scene.json` matches your track
-- Audio analysis focuses on bass frequencies (0-100Hz)
-
-### Recording produces black video
-- Ensure you clicked "Record" BEFORE playing
-- Check browser console for errors
-- Try Chrome (best MediaRecorder support)
-
-### Low frame rate during playback
-- Reduce browser window size
-- Close other tabs/applications
-- Try a less demanding preset (Soft or Default)
-- INSANE preset is GPU-intensive (FOV up to 95°, heavy chromatic aberration)
-
-### Scene looks too dark/bright/oversaturated
-- Try different presets (Dark has heavy vignette, Intense has strong bloom)
-- Adjust `renderer.toneMappingExposure` in `src/app.js` (default 1.3)
-- Modify color grade in the fragment shader (lines 437-439 in app.js)
+### Failsafes
+1. **Inline scene**: Embedded in `<script id="scene-inline">`
+2. **Emergency scene**: Hardcoded minimal flight
+3. **Render loop**: Always runs, never blocks
+4. **UI**: Setup before data load
+5. **Audio**: Optional, never required
 
 ## 📄 License
 
-This project is open source and available under the MIT License.
-
-Feel free to fork, modify, and use for your own creative projects!
+MIT License - Free to use, modify, distribute.
 
 ## 🙏 Credits
 
-- **Three.js**: 3D rendering library (https://threejs.org)
-- **Unpkg CDN**: For hosting Three.js dependencies
-- **Inspiration**: Cyberpunk aesthetics, drone cinematography, synthwave culture
+- **Three.js**: 3D library
+- **Unpkg CDN**: Dependency hosting
+- **Design**: Inspired by noir photography & puzzle aesthetics
 
 ---
 
 **Made with Claude Code** 🤖
 
-For questions or improvements, please open an issue on GitHub!
+For issues: Check console `[DRONE]` logs → Open GitHub issue with details
