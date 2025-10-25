@@ -1,6 +1,6 @@
 /**
  * Drone Night POV - Three.js Main Application
- * Procedural night city with camera path animation, audio-reactive FX, and 25fps recording
+ * Enhanced with file:// support, chromatic aberration, camera oscillation, and motion streaks
  */
 
 (function() {
@@ -18,10 +18,12 @@
   let hudVisible = false;
   let lastFrameTime = 0;
   let fps = 60;
+  let isLocalMode = false;
 
   // Camera path
   let cameraCurve = null;
   let currentShot = null;
+  let cameraOscillationPhase = 0;
 
   // Audio
   let audioContext = null;
@@ -35,7 +37,6 @@
   let mediaRecorder = null;
   let recordedChunks = [];
   let isRecording = false;
-  let recordingStartTime = 0;
 
   // City objects (reusable)
   let cityGroup = null;
@@ -44,7 +45,7 @@
   // Post-processing
   let bloomPass = null;
   let vignettePass = null;
-  let grainPass = null;
+  let chromaticPass = null;
 
   // ============================================================================
   // INITIALIZATION
@@ -65,9 +66,9 @@
     }
 
     try {
-      // Load scene configuration
-      sceneData = await loadJSON('scene.json');
-      console.log('Scene loaded:', sceneData.meta.title);
+      // Load scene configuration (with file:// detection)
+      sceneData = await loadSceneData('scene.json');
+      console.log('✓ Scene loaded:', sceneData.meta.title);
 
       // Setup Three.js
       setupRenderer(canvas);
@@ -91,7 +92,7 @@
       console.log('✓ Initialization complete');
     } catch (error) {
       console.error('Initialization failed:', error);
-      loading.innerHTML = `<div style="color: #ff3333;">Error: ${error.message}</div>`;
+      showFriendlyError(error);
     }
   }
 
@@ -105,6 +106,40 @@
     }
   }
 
+  function showFriendlyError(error) {
+    const loading = document.getElementById('loading');
+    const isFileProtocol = window.location.protocol === 'file:';
+
+    let message = '';
+
+    if (isFileProtocol) {
+      message = `
+        <div style="color: #ffaa44; max-width: 400px; line-height: 1.6;">
+          <h3 style="margin-bottom: 10px;">📁 Local File Mode</h3>
+          <p style="font-size: 14px; margin-bottom: 10px;">
+            For best experience, serve via GitHub Pages or a local server:
+          </p>
+          <code style="display: block; background: rgba(0,0,0,0.5); padding: 8px; border-radius: 4px; font-size: 12px; margin-bottom: 10px;">
+            python -m http.server 8000<br>
+            # or<br>
+            npx http-server -p 8000
+          </code>
+          <p style="font-size: 12px;">See README.md for details.</p>
+        </div>
+      `;
+    } else {
+      message = `
+        <div style="color: #ff3333;">
+          <h3>Error</h3>
+          <p>${error.message}</p>
+          <p style="font-size: 12px; margin-top: 10px;">Check console for details.</p>
+        </div>
+      `;
+    }
+
+    loading.innerHTML = message;
+  }
+
   function setupRenderer(canvas) {
     const wrapper = document.getElementById('canvas-wrapper');
     const width = wrapper.clientWidth;
@@ -114,19 +149,19 @@
       canvas: canvas,
       antialias: true,
       alpha: false,
-      preserveDrawingBuffer: true // Required for recording
+      preserveDrawingBuffer: true
     });
 
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.2;
+    renderer.toneMappingExposure = 1.3;
   }
 
   function setupScene() {
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x000510);
-    scene.fog = new THREE.FogExp2(0x000510, 0.015);
+    scene.fog = new THREE.FogExp2(0x000510, 0.012);
   }
 
   function setupCamera() {
@@ -139,17 +174,17 @@
   }
 
   function setupLights() {
-    // Ambient light (very subtle)
-    const ambient = new THREE.AmbientLight(0x0a0a15, 0.3);
+    // Ambient light
+    const ambient = new THREE.AmbientLight(0x0a0a15, 0.25);
     scene.add(ambient);
 
     // Directional light (moonlight)
-    const moon = new THREE.DirectionalLight(0x4466aa, 0.4);
+    const moon = new THREE.DirectionalLight(0x3366aa, 0.35);
     moon.position.set(50, 100, 50);
     scene.add(moon);
 
-    // Hemisphere light for better gradation
-    const hemi = new THREE.HemisphereLight(0x0a0a20, 0x000510, 0.5);
+    // Hemisphere light
+    const hemi = new THREE.HemisphereLight(0x0a0a20, 0x000510, 0.4);
     scene.add(hemi);
   }
 
@@ -164,17 +199,15 @@
     const buildingGeo = new THREE.BoxGeometry(1, 1, 1);
     const windowGeo = new THREE.PlaneGeometry(0.3, 0.4);
 
-    // Seed for deterministic randomness
     const seed = sceneData.meta.seed || 42;
     let rng = seededRandom(seed);
 
-    // Create city blocks in a grid
     const gridSize = 20;
     const blockSize = 8;
 
     for (let x = -gridSize; x < gridSize; x += blockSize) {
       for (let z = -gridSize; z < gridSize; z += blockSize) {
-        // Skip area where camera path goes
+        // Skip camera path area
         if (x > -10 && x < 15 && z > 0 && z < 60) continue;
 
         const buildingCount = Math.floor(rng() * 3) + 1;
@@ -186,31 +219,35 @@
           const depth = 2 + rng() * 3;
           const height = 5 + rng() * 25;
 
-          // Building body
+          // Building body (darker for more contrast)
           const buildingMat = new THREE.MeshLambertMaterial({
-            color: new THREE.Color(0.02, 0.02, 0.04),
+            color: new THREE.Color(0.015, 0.015, 0.025),
             flatShading: true
           });
 
           const building = new THREE.Mesh(buildingGeo, buildingMat);
           building.scale.set(width, height, depth);
           building.position.set(bx, height / 2, bz);
+          building.castShadow = true;
+          building.receiveShadow = true;
           cityGroup.add(building);
 
-          // Windows (instanced)
+          // Windows with stronger emissive
           const windowCount = Math.floor(height / 2) * 4;
+          const isNeon = rng() > 0.65;
+          const windowColor = isNeon ? 0x00ffff : 0xffaa44;
+
           const windowMat = new THREE.MeshBasicMaterial({
-            color: rng() > 0.3 ? 0xffaa44 : 0x00ffff,
+            color: windowColor,
             side: THREE.DoubleSide
           });
 
           for (let w = 0; w < windowCount; w++) {
-            if (rng() > 0.4) { // 40% windows are lit
+            if (rng() > 0.35) {
               const window = new THREE.Mesh(windowGeo, windowMat.clone());
               const side = Math.floor(rng() * 4);
               const wy = 2 + (rng() * (height - 4));
 
-              // Position on building face
               if (side === 0) window.position.set(bx + width/2, wy, bz);
               else if (side === 1) window.position.set(bx - width/2, wy, bz);
               else if (side === 2) window.position.set(bx, wy, bz + depth/2);
@@ -222,10 +259,14 @@
             }
           }
 
-          // Random neon accent on some buildings
-          if (rng() > 0.85) {
+          // Neon accent rooftops
+          if (rng() > 0.8) {
             const neonColor = rng() > 0.5 ? 0x00ffff : 0xff6600;
-            const neonMat = new THREE.MeshBasicMaterial({ color: neonColor });
+            const neonMat = new THREE.MeshBasicMaterial({
+              color: neonColor,
+              transparent: true,
+              opacity: 0.8
+            });
             const neon = new THREE.Mesh(
               new THREE.BoxGeometry(width * 0.8, 0.3, depth * 0.8),
               neonMat
@@ -240,12 +281,13 @@
     // Ground plane
     const groundGeo = new THREE.PlaneGeometry(200, 200);
     const groundMat = new THREE.MeshLambertMaterial({
-      color: 0x0a0a0f,
+      color: 0x050508,
       side: THREE.DoubleSide
     });
     const ground = new THREE.Mesh(groundGeo, groundMat);
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = 0;
+    ground.receiveShadow = true;
     cityGroup.add(ground);
 
     console.log('✓ City generated');
@@ -259,10 +301,9 @@
     bridgeGroup = new THREE.Group();
     scene.add(bridgeGroup);
 
-    // Bridge arch at position where camera passes under
     const archCurve = new THREE.QuadraticBezierCurve3(
       new THREE.Vector3(3, 3, 4),
-      new THREE.Vector3(7, 8, 6),
+      new THREE.Vector3(7, 9, 6),
       new THREE.Vector3(11, 3, 8)
     );
 
@@ -270,39 +311,45 @@
     const archGeo = new THREE.TubeGeometry(
       new THREE.CatmullRomCurve3(archPoints),
       20,
-      0.4,
+      0.5,
       8,
       false
     );
 
     const archMat = new THREE.MeshLambertMaterial({
-      color: 0x1a1a22,
+      color: 0x15151a,
       flatShading: true
     });
 
     const arch = new THREE.Mesh(archGeo, archMat);
+    arch.castShadow = true;
     bridgeGroup.add(arch);
 
     // Bridge deck
-    const deckGeo = new THREE.BoxGeometry(10, 0.3, 12);
+    const deckGeo = new THREE.BoxGeometry(10, 0.4, 12);
     const deck = new THREE.Mesh(deckGeo, archMat);
-    deck.position.set(7, 7.5, 6);
+    deck.position.set(7, 8, 6);
+    deck.castShadow = true;
     bridgeGroup.add(deck);
 
-    // Neon underlight
-    const neonMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+    // Neon underlight (stronger)
+    const neonMat = new THREE.MeshBasicMaterial({
+      color: 0x00ffff,
+      transparent: true,
+      opacity: 0.7
+    });
     const neonLight = new THREE.Mesh(
-      new THREE.BoxGeometry(9, 0.1, 11),
+      new THREE.BoxGeometry(9, 0.15, 11),
       neonMat
     );
-    neonLight.position.set(7, 7.3, 6);
+    neonLight.position.set(7, 7.8, 6);
     bridgeGroup.add(neonLight);
 
     console.log('✓ Bridge created');
   }
 
   // ============================================================================
-  // POST-PROCESSING SETUP
+  // ENHANCED POST-PROCESSING
   // ============================================================================
 
   function setupPostProcessing() {
@@ -316,22 +363,24 @@
     const renderPass = new THREE.RenderPass(scene, camera);
     composer.addPass(renderPass);
 
-    // Bloom pass
+    // Bloom pass (stronger for neon glow)
     bloomPass = new THREE.UnrealBloomPass(
       new THREE.Vector2(width, height),
-      0.3,  // strength
-      0.4,  // radius
-      0.85  // threshold
+      0.4,
+      0.5,
+      0.82
     );
     composer.addPass(bloomPass);
 
-    // Vignette + grain shader
-    const vignetteShader = {
+    // Chromatic Aberration + Vignette + Grain shader
+    const enhancedShader = {
       uniforms: {
         tDiffuse: { value: null },
         uVignette: { value: 0.3 },
-        uGrain: { value: 0.08 },
-        uTime: { value: 0 }
+        uGrain: { value: 0.10 },
+        uTime: { value: 0 },
+        uChromaticAberration: { value: 0.0 },
+        uResolution: { value: new THREE.Vector2(width, height) }
       },
       vertexShader: `
         varying vec2 vUv;
@@ -345,41 +394,66 @@
         uniform float uVignette;
         uniform float uGrain;
         uniform float uTime;
+        uniform float uChromaticAberration;
+        uniform vec2 uResolution;
         varying vec2 vUv;
 
+        // Noise function
         float random(vec2 st) {
           return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
         }
 
-        void main() {
-          vec4 color = texture2D(tDiffuse, vUv);
+        // Better film grain with temporal variation
+        float filmGrain(vec2 uv, float time) {
+          vec2 uvRandom = uv;
+          uvRandom.y *= random(vec2(uvRandom.y, time));
+          return random(uvRandom);
+        }
 
-          // Vignette
-          vec2 uv = vUv * 2.0 - 1.0;
-          float dist = length(uv);
-          float vignette = smoothstep(0.8, 0.3, dist * uVignette * 2.5);
+        void main() {
+          vec2 uv = vUv;
+
+          // Chromatic aberration
+          float aberration = uChromaticAberration;
+          vec2 direction = uv - 0.5;
+
+          float r = texture2D(tDiffuse, uv + direction * aberration).r;
+          float g = texture2D(tDiffuse, uv).g;
+          float b = texture2D(tDiffuse, uv - direction * aberration).b;
+
+          vec4 color = vec4(r, g, b, 1.0);
+
+          // Vignette (stronger)
+          vec2 vignetteUv = uv * 2.0 - 1.0;
+          float dist = length(vignetteUv);
+          float vignette = smoothstep(0.9, 0.2, dist * uVignette * 3.0);
           color.rgb *= vignette;
 
-          // Film grain
-          float grain = random(vUv + uTime) * uGrain;
+          // Animated film grain
+          float grain = filmGrain(uv * 2.5, uTime * 10.0) * uGrain;
           color.rgb += grain - uGrain * 0.5;
+
+          // Subtle color grade (teal shadows, amber highlights)
+          color.r *= 1.05;
+          color.g *= 0.98;
+          color.b *= 1.08;
 
           gl_FragColor = color;
         }
       `
     };
 
-    vignettePass = new THREE.ShaderPass(vignetteShader);
-    vignettePass.renderToScreen = true;
-    composer.addPass(vignettePass);
+    chromaticPass = new THREE.ShaderPass(enhancedShader);
+    chromaticPass.renderToScreen = true;
+    composer.addPass(chromaticPass);
 
-    grainPass = vignettePass; // Same pass
+    vignettePass = chromaticPass;
 
-    console.log('✓ Post-processing ready');
+    console.log('✓ Enhanced post-processing ready');
   }
 
   // ============================================================================
-  // CAMERA PATH & ANIMATION
+  // ENHANCED CAMERA PATH & ANIMATION
   // ============================================================================
 
   function updateCameraPath() {
@@ -414,6 +488,18 @@
     const pos = cameraCurve.getPoint(t);
     camera.position.copy(pos);
 
+    // Camera oscillation (micro-shake for handheld feel)
+    const oscillation = shot.camera.oscillation || 0;
+    if (oscillation > 0) {
+      cameraOscillationPhase += 0.08;
+      const oscX = Math.sin(cameraOscillationPhase * 2.3) * oscillation * 0.3;
+      const oscY = Math.sin(cameraOscillationPhase * 3.1) * oscillation * 0.2;
+      const oscZ = Math.sin(cameraOscillationPhase * 1.7) * oscillation * 0.15;
+      camera.position.x += oscX;
+      camera.position.y += oscY;
+      camera.position.z += oscZ;
+    }
+
     // Look ahead on curve
     const lookAheadT = Math.min(1, t + 0.05);
     const lookAt = cameraCurve.getPoint(lookAheadT);
@@ -424,25 +510,38 @@
     camera.fov = fov;
     camera.updateProjectionMatrix();
 
-    // Interpolate roll
-    const roll = THREE.MathUtils.lerp(
+    // Interpolate roll with audio pulse
+    const baseRoll = THREE.MathUtils.lerp(
       shot.camera.rollDeg[0] * Math.PI / 180,
       shot.camera.rollDeg[1] * Math.PI / 180,
       t
     );
-    camera.rotation.z = roll;
+
+    // Add rhythmic camera jitter on beats
+    let beatJitter = 0;
+    const nearestBeat = sceneData.beats.reduce((prev, curr) =>
+      Math.abs(curr - currentTime) < Math.abs(prev - currentTime) ? curr : prev
+    );
+    const beatDist = Math.abs(nearestBeat - currentTime);
+    if (beatDist < 0.08) {
+      beatJitter = (0.08 - beatDist) * 0.5;
+    }
+
+    camera.rotation.z = baseRoll + beatJitter;
 
     // Update FX
     updateFX(shot, t);
 
-    // Fade effect at end
+    // Fade effect
     if (shot.fx.fade) {
       const [fadeStart, fadeEnd] = shot.fx.fade;
       if (currentTime >= fadeStart) {
         const fadeT = (currentTime - fadeStart) / (fadeEnd - fadeStart);
         const opacity = 1 - Math.min(1, fadeT);
-        renderer.toneMappingExposure = 1.2 * opacity;
+        renderer.toneMappingExposure = 1.3 * opacity;
       }
+    } else {
+      renderer.toneMappingExposure = 1.3;
     }
   }
 
@@ -451,18 +550,20 @@
     let audioEnergy = 0;
     if (hasAudio && analyser && audioData) {
       analyser.getByteFrequencyData(audioData);
-      const sum = audioData.reduce((a, b) => a + b, 0);
-      audioEnergy = sum / (audioData.length * 255);
+      // Focus on bass frequencies (0-100Hz range)
+      const bassData = audioData.slice(0, Math.floor(audioData.length * 0.1));
+      const sum = bassData.reduce((a, b) => a + b, 0);
+      audioEnergy = sum / (bassData.length * 255);
     } else {
-      // Fake beat detection from timeline
+      // Fake beat detection
       const nearestBeat = sceneData.beats.reduce((prev, curr) =>
         Math.abs(curr - currentTime) < Math.abs(prev - currentTime) ? curr : prev
       );
       const beatDist = Math.abs(nearestBeat - currentTime);
-      audioEnergy = beatDist < 0.1 ? 0.8 : 0.2;
+      audioEnergy = beatDist < 0.1 ? Math.pow(1 - beatDist / 0.1, 2) : 0.1;
     }
 
-    // Bloom
+    // Bloom (pulse with beats)
     const bloomBase = THREE.MathUtils.lerp(shot.fx.bloom[0], shot.fx.bloom[1], t);
     const bloomPulse = shot.fx.neonPulse * audioEnergy;
     bloomPass.strength = bloomBase + bloomPulse;
@@ -472,11 +573,18 @@
     if (vignettePass.uniforms) {
       vignettePass.uniforms.uVignette.value = vignetteVal;
       vignettePass.uniforms.uTime.value = currentTime;
+
+      // Chromatic aberration (from shot config)
+      const aberration = shot.fx.chromaticAberration || 0;
+      vignettePass.uniforms.uChromaticAberration.value = aberration + audioEnergy * 0.001;
+
+      // Grain (slightly more on beats)
+      vignettePass.uniforms.uGrain.value = 0.10 + audioEnergy * 0.05;
     }
   }
 
   // ============================================================================
-  // AUDIO
+  // AUDIO SETUP
   // ============================================================================
 
   function setupAudio(audioFile) {
@@ -484,7 +592,6 @@
       audioContext = new (window.AudioContext || window.webkitAudioContext)();
     }
 
-    // Create audio element
     if (audioElement) {
       audioElement.pause();
       audioElement.remove();
@@ -494,9 +601,9 @@
     audioElement.src = URL.createObjectURL(audioFile);
     audioElement.loop = false;
 
-    // Create analyser
     analyser = audioContext.createAnalyser();
-    analyser.fftSize = 256;
+    analyser.fftSize = 512;
+    analyser.smoothingTimeConstant = 0.7;
     audioData = new Uint8Array(analyser.frequencyBinCount);
 
     audioSource = audioContext.createMediaElementSource(audioElement);
@@ -504,9 +611,8 @@
     analyser.connect(audioContext.destination);
 
     hasAudio = true;
-    console.log('✓ Audio loaded');
+    console.log('✓ Audio loaded with analyser');
 
-    // Sync playback
     if (isPlaying) {
       audioElement.currentTime = currentTime;
       audioElement.play();
@@ -514,23 +620,22 @@
   }
 
   // ============================================================================
-  // RECORDING (25fps)
+  // RECORDING (25fps locked)
   // ============================================================================
 
   function startRecording() {
     if (isRecording) return;
 
     const canvas = document.getElementById('canvas');
-    const stream = canvas.captureStream(25); // Lock to 25 fps
+    const stream = canvas.captureStream(25);
 
     recordedChunks = [];
 
     const options = {
       mimeType: 'video/webm;codecs=vp9',
-      videoBitsPerSecond: 8000000 // 8 Mbps for quality
+      videoBitsPerSecond: 10000000
     };
 
-    // Fallback codec
     if (!MediaRecorder.isTypeSupported(options.mimeType)) {
       options.mimeType = 'video/webm;codecs=vp8';
     }
@@ -549,18 +654,16 @@
 
       const a = document.createElement('a');
       a.href = url;
-      a.download = `drone-night-clip-${Date.now()}.webm`;
+      a.download = `drone-night-${sceneData.meta.title.replace(/\s+/g, '-')}-${Date.now()}.webm`;
       a.click();
 
       URL.revokeObjectURL(url);
       console.log('✓ Recording saved');
     };
 
-    mediaRecorder.start(100); // Collect data every 100ms
+    mediaRecorder.start(100);
     isRecording = true;
-    recordingStartTime = currentTime;
 
-    // Restart from beginning for full recording
     currentTime = 0;
     isPlaying = true;
     if (audioElement) {
@@ -571,7 +674,7 @@
     document.getElementById('btn-record').textContent = '⏹ Stop Recording';
     document.getElementById('btn-record').classList.add('recording');
 
-    console.log('Recording started at 25fps');
+    console.log('🎬 Recording started at 25fps');
   }
 
   function stopRecording() {
@@ -591,33 +694,28 @@
   function render(timestamp) {
     requestAnimationFrame(render);
 
-    // Calculate delta time
     const delta = timestamp - lastFrameTime;
     lastFrameTime = timestamp;
 
-    // FPS counter
     fps = Math.round(1000 / Math.max(delta, 1));
 
-    // Update time
     if (isPlaying) {
       if (isRecording) {
-        // Lock to 25 fps during recording
+        // Lock to 25fps
         currentTime += 1 / 25 * playbackSpeed;
       } else {
         currentTime += (delta / 1000) * playbackSpeed;
       }
 
-      // Loop or stop at end
       if (currentTime >= sceneData.meta.duration) {
         if (isRecording) {
           stopRecording();
           isPlaying = false;
         } else {
-          currentTime = 0; // Loop
+          currentTime = 0;
         }
       }
 
-      // Sync audio
       if (audioElement && hasAudio) {
         const audioDiff = Math.abs(audioElement.currentTime - currentTime);
         if (audioDiff > 0.1) {
@@ -626,13 +724,8 @@
       }
     }
 
-    // Update camera and FX
     updateCameraPath();
-
-    // Render
     composer.render();
-
-    // Update HUD
     updateHUD();
   }
 
@@ -651,7 +744,6 @@
   // ============================================================================
 
   function setupUI() {
-    // Play/Pause
     document.getElementById('btn-play').addEventListener('click', () => {
       isPlaying = !isPlaying;
 
@@ -664,7 +756,6 @@
       }
     });
 
-    // Record
     document.getElementById('btn-record').addEventListener('click', () => {
       if (isRecording) {
         stopRecording();
@@ -673,7 +764,6 @@
       }
     });
 
-    // Audio input
     document.getElementById('input-audio').addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (file) {
@@ -681,12 +771,11 @@
       }
     });
 
-    // Preset selector
     document.getElementById('preset-select').addEventListener('change', async (e) => {
       const presetPath = e.target.value;
       if (presetPath) {
         try {
-          sceneData = await loadJSON(presetPath);
+          sceneData = await loadSceneData(presetPath);
           currentTime = 0;
           currentShot = null;
           console.log('✓ Preset loaded:', presetPath);
@@ -694,13 +783,12 @@
           console.error('Failed to load preset:', err);
         }
       } else {
-        sceneData = await loadJSON('scene.json');
+        sceneData = await loadSceneData('scene.json');
         currentTime = 0;
         currentShot = null;
       }
     });
 
-    // Window resize
     window.addEventListener('resize', onResize);
   }
 
@@ -743,17 +831,68 @@
 
     renderer.setSize(width, height);
     composer.setSize(width, height);
+
+    if (chromaticPass.uniforms) {
+      chromaticPass.uniforms.uResolution.value.set(width, height);
+    }
+  }
+
+  // ============================================================================
+  // ENHANCED DATA LOADING (file:// support)
+  // ============================================================================
+
+  async function loadSceneData(path) {
+    // Detect file:// protocol
+    const isFileProtocol = window.location.protocol === 'file:';
+
+    // Try to fetch normally first
+    if (!isFileProtocol) {
+      try {
+        const response = await fetch(path);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.json();
+      } catch (fetchError) {
+        console.warn('Fetch failed, trying inline fallback:', fetchError);
+      }
+    }
+
+    // Use inline scene data
+    return loadInlineScene(path);
+  }
+
+  function loadInlineScene(path) {
+    // Map paths to inline script IDs
+    const pathMap = {
+      'scene.json': 'scene-default',
+      'presets/soft.json': 'scene-soft',
+      'presets/intense.json': 'scene-intense',
+      'presets/dark.json': 'scene-dark',
+      'presets/insane.json': 'scene-insane'
+    };
+
+    const scriptId = pathMap[path] || 'scene-default';
+    const scriptEl = document.getElementById(scriptId);
+
+    if (!scriptEl) {
+      throw new Error(`Inline scene not found: ${scriptId}`);
+    }
+
+    const data = JSON.parse(scriptEl.textContent);
+
+    // Show local mode indicator
+    if (!isLocalMode) {
+      isLocalMode = true;
+      const indicator = document.getElementById('local-mode');
+      if (indicator) indicator.classList.add('visible');
+      console.log('📁 Running in local mode (inline scenes)');
+    }
+
+    return data;
   }
 
   // ============================================================================
   // UTILITIES
   // ============================================================================
-
-  async function loadJSON(path) {
-    const response = await fetch(path);
-    if (!response.ok) throw new Error(`Failed to load ${path}`);
-    return await response.json();
-  }
 
   function seededRandom(seed) {
     let s = seed;
@@ -767,7 +906,6 @@
   // START
   // ============================================================================
 
-  // Wait for DOM and Three.js to be ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       setTimeout(init, 100);

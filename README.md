@@ -2,29 +2,69 @@
 
 An immersive vertical (9:16) cinematic experience featuring a procedurally generated night city flythrough with audio-reactive visual effects. Built with Three.js and Canvas 2D fallback, designed for GitHub Pages.
 
+**NEW**: Works seamlessly in local file:// mode with embedded scene data - no server required!
+
 ## ✨ Features
 
-- **Cinematic Camera Path**: Smooth CatmullRom curve following a pre-scripted drone flight
-- **Procedural City**: Low-poly buildings with animated neon windows and atmospheric lighting
-- **Post-Processing FX**: Bloom, vignette, and film grain effects that pulse with the audio
-- **Audio Reactive**: Syncs visual effects to your music or falls back to beat timeline
-- **25fps Recording**: Export your animation as a high-quality .webm video file
-- **Responsive 9:16**: Perfect vertical format for mobile and social media
+### Visual Effects
+- **Enhanced Post-Processing**: Bloom, vignette, film grain, and chromatic aberration
+- **Camera Micro-Oscillation**: Handheld feel with subtle shake on intense presets
+- **Rhythmic Jitter**: Camera pulses on beat hits for dynamic energy
+- **Teal & Amber Color Grade**: Cinematic color treatment with enhanced contrast
+- **Audio-Reactive FX**: Bass-driven bloom and grain that sync with your music
+
+### Camera & Animation
+- **Cinematic Camera Path**: Smooth CatmullRom curve with 3 distinct shots
+- **Dynamic FOV & Roll**: Interpolated field of view (55°-95°) and camera roll (up to 10° in INSANE mode)
+- **Speed Variation**: Camera speed multipliers per shot for dramatic pacing
+- **Beat-Synced Motion**: Subtle jitter on musical beats
+
+### Technical
+- **Procedural City**: Low-poly buildings with animated neon windows (cyan/amber palette)
+- **25fps Recording**: Export as high-quality .webm video (10 Mbps bitrate)
+- **Responsive 9:16**: Perfect vertical format optimized for mobile/social
 - **No Build Step**: Pure HTML/CSS/JS with CDN dependencies
 - **WebGL + 2D Fallback**: Gracefully degrades to Canvas 2D if WebGL unavailable
+- **Local File Mode**: Embedded scene data works with `file://` protocol
+- **5 Presets**: Default, Soft, Intense, Very Dark, and INSANE modes
 
 ## 🚀 Quick Start
 
-### 1. Enable GitHub Pages
+### Option A: Local File Mode (No Server)
+
+**Just downloaded the repo? It works instantly!**
+
+1. Open `index.html` directly in your browser (double-click or drag-and-drop)
+2. You'll see a small "📁 Local mode (inline scene)" indicator
+3. All features work except external file loading
+4. All 5 presets are embedded and fully functional
+
+**Note**: This mode uses embedded scene data. For the best experience and external preset loading, use Option B or C.
+
+### Option B: GitHub Pages (Recommended)
 
 1. Go to your repository **Settings** → **Pages**
 2. Under **Source**, select `main` branch and `/` (root) directory
 3. Click **Save**
 4. Your site will be live at: `https://<your-username>.github.io/drone-night-clip/`
 
-### 2. View the Animation
+### Option C: Local Server
 
-Simply open the GitHub Pages URL in your browser. The animation will start loading automatically.
+For local development with full file access:
+
+```bash
+# Python 3
+python -m http.server 8000
+
+# Node.js
+npx http-server -p 8000
+```
+
+Then visit `http://localhost:8000`
+
+### Controls
+
+Once running:
 
 **Controls:**
 - **SPACE**: Play/Pause
@@ -57,10 +97,11 @@ Simply open the GitHub Pages URL in your browser. The animation will start loadi
 ### 4. Try Different Presets
 
 Use the **Preset** dropdown in the UI to switch between:
-- **Default**: Balanced (scene.json)
-- **Soft**: Gentle camera movement, subtle FX (presets/soft.json)
-- **Intense**: Fast-paced, strong bloom, dramatic roll (presets/intense.json)
-- **Very Dark**: Slow, heavy vignette, minimal lighting (presets/dark.json)
+- **Default**: Balanced (scene.json) - BPM 90, 18s
+- **Soft**: Gentle camera, subtle FX (BPM 75, roll ±1°)
+- **Intense**: Fast-paced, strong bloom, dramatic roll (BPM 120, roll ±5°)
+- **Very Dark**: Slow, heavy vignette, minimal lighting (BPM 60)
+- **INSANE**: Extreme speed, FOV 62°→95°, roll up to 10°, chromatic aberration (BPM 140, 20s)
 
 ## 🎬 Recording Your Animation
 
@@ -160,17 +201,20 @@ Vignette and grain are controlled in the custom shader uniforms.
 
 ### Local Testing
 
-No build step required! Just open `index.html` in a browser:
+**Three ways to run locally:**
 
-```bash
-# Simple HTTP server (Python 3)
-python -m http.server 8000
+1. **Direct file:// (easiest)**: Just open `index.html` - all features work with embedded scenes
+2. **Python server**: `python -m http.server 8000` then visit `http://localhost:8000`
+3. **Node server**: `npx http-server -p 8000` then visit `http://localhost:8000`
 
-# Or with Node.js
-npx http-server -p 8000
-```
+### How File Mode Works
 
-Then visit `http://localhost:8000`
+When opened via `file://` protocol:
+- Automatic detection of local mode
+- Falls back to embedded `<script type="application/json">` scene data
+- All 5 presets work seamlessly
+- Small indicator appears: "📁 Local mode (inline scene)"
+- No network requests, works 100% offline
 
 ### Browser Compatibility
 
@@ -200,30 +244,34 @@ Inspiration: Blade Runner, Ghost in the Shell, cyberpunk night photography
 
 ## 🐛 Troubleshooting
 
+### Page won't load / Fetch errors
+**Solution**: Open directly via `file://` - the page auto-detects and uses embedded scenes. Or serve via HTTP as described above.
+
 ### "WebGL not supported" message
 - Use a modern browser (Chrome/Firefox/Edge)
 - Enable hardware acceleration in browser settings
 - Falls back to 2D Canvas automatically
 
 ### Audio not syncing
-- Check that audio file duration matches scene duration
+- Check that audio file duration matches scene duration (18s default, 20s for INSANE)
 - Verify BPM in `scene.json` matches your track
-- Try the "Load Audio" button instead of static file
+- Audio analysis focuses on bass frequencies (0-100Hz)
 
 ### Recording produces black video
 - Ensure you clicked "Record" BEFORE playing
 - Check browser console for errors
-- Try a different browser (Chrome recommended for recording)
+- Try Chrome (best MediaRecorder support)
 
 ### Low frame rate during playback
 - Reduce browser window size
-- Close other applications
-- Lower bloom quality in `setupPostProcessing()`
+- Close other tabs/applications
+- Try a less demanding preset (Soft or Default)
+- INSANE preset is GPU-intensive (FOV up to 95°, heavy chromatic aberration)
 
-### Scene looks too dark/bright
-- Adjust `renderer.toneMappingExposure` in `src/app.js`
-- Modify preset FX values (bloom, vignette)
-- Change fog density in `setupScene()`
+### Scene looks too dark/bright/oversaturated
+- Try different presets (Dark has heavy vignette, Intense has strong bloom)
+- Adjust `renderer.toneMappingExposure` in `src/app.js` (default 1.3)
+- Modify color grade in the fragment shader (lines 437-439 in app.js)
 
 ## 📄 License
 

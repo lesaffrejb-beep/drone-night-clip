@@ -23,6 +23,7 @@
   let buildings = [];
   let audioElement = null;
   let hasAudio = false;
+  let isLocalMode = false;
 
   // Recording
   let mediaRecorder = null;
@@ -40,8 +41,8 @@
     const loading = document.getElementById('loading');
 
     try {
-      // Load scene
-      sceneData = await loadJSON('scene.json');
+      // Load scene (with file:// detection)
+      sceneData = await loadSceneData('scene.json');
       console.log('[2D Fallback] Scene loaded:', sceneData.meta.title);
 
       // Setup canvas size
@@ -410,7 +411,7 @@
     document.getElementById('preset-select').addEventListener('change', async (e) => {
       const path = e.target.value || 'scene.json';
       try {
-        sceneData = await loadJSON(path);
+        sceneData = await loadSceneData(path);
         currentTime = 0;
         currentShot = null;
         generateCity();
@@ -479,17 +480,59 @@
   }
 
   // ============================================================================
+  // ENHANCED DATA LOADING (file:// support)
+  // ============================================================================
+
+  async function loadSceneData(path) {
+    const isFileProtocol = window.location.protocol === 'file:';
+
+    if (!isFileProtocol) {
+      try {
+        const response = await fetch(path);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.json();
+      } catch (fetchError) {
+        console.warn('[2D] Fetch failed, using inline:', fetchError);
+      }
+    }
+
+    return loadInlineScene(path);
+  }
+
+  function loadInlineScene(path) {
+    const pathMap = {
+      'scene.json': 'scene-default',
+      'presets/soft.json': 'scene-soft',
+      'presets/intense.json': 'scene-intense',
+      'presets/dark.json': 'scene-dark',
+      'presets/insane.json': 'scene-insane'
+    };
+
+    const scriptId = pathMap[path] || 'scene-default';
+    const scriptEl = document.getElementById(scriptId);
+
+    if (!scriptEl) {
+      throw new Error(`Inline scene not found: ${scriptId}`);
+    }
+
+    const data = JSON.parse(scriptEl.textContent);
+
+    if (!isLocalMode) {
+      isLocalMode = true;
+      const indicator = document.getElementById('local-mode');
+      if (indicator) indicator.classList.add('visible');
+      console.log('[2D] 📁 Running in local mode');
+    }
+
+    return data;
+  }
+
+  // ============================================================================
   // UTILITIES
   // ============================================================================
 
   function lerp(a, b, t) {
     return a + (b - a) * t;
-  }
-
-  async function loadJSON(path) {
-    const response = await fetch(path);
-    if (!response.ok) throw new Error(`Failed to load ${path}`);
-    return await response.json();
   }
 
   function seededRandom(seed) {
