@@ -449,9 +449,13 @@
 
   <!-- Dependency Check & Init -->
   <script>
+    // Detect if running from file:// protocol
+    const isLocal = location.protocol === 'file:';
+
     // Wait for all dependencies to load OR timeout
     (function() {
-      const MAX_WAIT = 8000; // 8 seconds max
+      // Longer timeout for https:// (production), immediate error for file://
+      const MAX_WAIT = isLocal ? 2000 : 30000; // 2s for file://, 30s for https://
       const CHECK_INTERVAL = 100;
       let elapsed = 0;
 
@@ -470,17 +474,22 @@
           const script = document.createElement('script');
           script.src = 'src/app.js';
           script.onerror = () => {
-            showError('Failed to load app.js');
+            showError('Failed to load app.js', false);
           };
           document.body.appendChild(script);
 
         } else if (elapsed >= MAX_WAIT) {
           clearInterval(checkInterval);
-          showError('CDN timeout - Use local server');
+
+          if (isLocal) {
+            showError('Local file mode detected', true);
+          } else {
+            showError('CDN loading timeout', false);
+          }
         }
       }, CHECK_INTERVAL);
 
-      function showError(message) {
+      function showError(message, showLocalInstructions) {
         console.error('[DRONE]', message);
 
         const spinner = document.getElementById('init-spinner');
@@ -493,20 +502,29 @@
           status.className = 'error';
         }
 
-        if (instructionsBox) {
+        if (instructionsBox && showLocalInstructions) {
           instructionsBox.style.display = 'block';
           instructionsBox.className = 'instructions';
           instructionsBox.innerHTML = `
             <strong>⚠️ Local Mode Detected</strong><br><br>
-            This requires a local server. Try:<br><br>
+            Opening from file system won't load CDN scripts.<br>
+            You need a local server:<br><br>
             <strong>Option 1 - Python:</strong><br>
             <code>python3 -m http.server 8000</code><br>
             Then open: <code>http://localhost:8000</code><br><br>
             <strong>Option 2 - VS Code:</strong><br>
             Install "Live Server" extension<br>
             Right-click index.html → Open with Live Server<br><br>
-            <strong>Option 3 - Node:</strong><br>
-            <code>npx http-server -p 8000</code>
+            <strong>Option 3 - GitHub Pages:</strong><br>
+            Visit <code>https://lesaffrejb-beep.github.io/drone-night-clip/</code>
+          `;
+        } else if (instructionsBox) {
+          instructionsBox.style.display = 'block';
+          instructionsBox.className = 'instructions';
+          instructionsBox.innerHTML = `
+            <strong>⚠️ Loading Error</strong><br><br>
+            Failed to load dependencies. Try refreshing the page.<br>
+            If the problem persists, check your network connection.
           `;
         }
       }

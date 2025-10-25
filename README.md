@@ -1,15 +1,16 @@
 # 🌃 Drone Night POV - V2 B&W Edition
 
-**Anti-Fragile** monochrome cinematic experience. Works everywhere: file://, GitHub Pages, or local server. Play button ALWAYS works.
+**Cinematic B&W Animation** - Pure monochrome drone POV short film. Designed for GitHub Pages deployment with anti-fragile architecture.
 
 ## ✨ V2 Features
 
 ### Anti-Fragile Design
-- **File:// Support**: Works by double-clicking index.html
-- **No Fetch Required**: Inline JSON fallback
-- **No Audio Required**: Beat timeline fallback
-- **Never Crashes**: Defensive checks everywhere
-- **[DRONE] Logging**: Full console diagnostics
+- **Smart Protocol Detection**: file:// shows helpful error immediately, https:// waits 30s
+- **Inline JSON Fallback**: Embedded scene data if fetch fails
+- **No Audio Required**: Beat timeline fallback, visuals work without audio
+- **Never Crashes**: Defensive null checks everywhere
+- **[DRONE] Logging**: Full console diagnostics for debugging
+- **Two-Phase Init**: UI always loads, even if scene data fails
 
 ### Visual Style
 - **Pure Monochrome**: Black (#000) to Ivory (#eee) only
@@ -32,39 +33,52 @@
 
 ## 🚀 Quick Start
 
-### 1. Local File Mode (Instant)
-**No server needed!**
+### 1. GitHub Pages (Recommended)
 
-```bash
-# Just open the file
-open index.html  # macOS
-start index.html # Windows
-xdg-open index.html # Linux
-```
+**Live Demo**: `https://lesaffrejb-beep.github.io/drone-night-clip/`
 
-✓ Works immediately with embedded scene data
-
-### 2. GitHub Pages
-
+**Deploy Your Own:**
 1. Go to repo **Settings** → **Pages**
 2. Source: `main` branch, `/` root
 3. Save
-4. URL: `https://<username>.github.io/drone-night-clip/`
+4. Wait ~1 minute
+5. Visit: `https://<your-username>.github.io/drone-night-clip/`
 
-### 3. Local Server (Best Dev Experience)
+✅ CDN loads properly over https://
+✅ No "Local Mode" errors
+✅ Full functionality (audio, presets, recording)
+
+### 2. Local Development Server
+
+**Required for local testing** (file:// won't load CDN scripts)
 
 ```bash
-# Python 3
+# Python 3 (Simple & Universal)
 python3 -m http.server 8000
+# Then visit: http://localhost:8000
 
-# VS Code
-# Install "Live Server" extension, right-click index.html → Open with Live Server
+# VS Code Live Server
+# Install "Live Server" extension
+# Right-click index.html → "Open with Live Server"
 
 # Node.js
 npx http-server -p 8000
 ```
 
-Then visit `http://localhost:8000`
+✅ Proper CDN loading
+✅ All features work
+✅ Fast iteration
+
+### 3. Audio Files (Optional)
+
+Add your own audio track:
+
+```bash
+# Place audio in assets/
+cp your-track.mp3 assets/track.mp3
+```
+
+Or use the **Load Audio** button in the UI to upload any audio file.
 
 ## 🎮 Controls
 
@@ -82,15 +96,30 @@ Then visit `http://localhost:8000`
 
 ## 🎥 Recording
 
-1. Click **"▶ Start"** to initialize
-2. Press **SPACE** or wait for auto-play
-3. To record: Reload page, click Start, press SPACE immediately
-4. Video saves as `.webm` in Downloads
+1. Load the page (GitHub Pages or local server)
+2. Click **"▶ Start Experience"** button
+3. Video automatically records from start to finish (18-20s)
+4. Recording stops at end, download starts automatically
+5. File saves as `.webm` in your Downloads folder
 
-**Convert to MP4:**
+**Convert WebM to MP4:**
+
 ```bash
+# High quality (recommended)
 ffmpeg -i drone-night-*.webm -c:v libx264 -crf 18 -preset slow output.mp4
+
+# Fast conversion
+ffmpeg -i drone-night-*.webm -c:v libx264 -crf 23 -preset fast output.mp4
+
+# For social media (1080p)
+ffmpeg -i drone-night-*.webm -c:v libx264 -vf "scale=1080:1920" -crf 23 output.mp4
 ```
+
+**Notes:**
+- Recording always runs at 25fps (locked framerate for smooth playback)
+- Output file size: ~5-10MB for 20 seconds
+- Chrome recommended (best MediaRecorder codec support)
+- Original resolution: 1080x1920 (vertical 9:16)
 
 ## 🎨 Presets
 
@@ -148,30 +177,51 @@ ffmpeg -i drone-night-*.webm -c:v libx264 -crf 18 -preset slow output.mp4
 
 ## 🧪 Troubleshooting
 
-### Play button does nothing
-- **Fixed in V2!** Init is two-phase, UI always connects
-- Check console for `[DRONE]` logs
-- Press F12, look for errors
+### "Local Mode Detected" Error
 
-### Black screen
-- Check WebGL support: Visit `https://get.webgl.org/`
-- Try Chrome/Firefox (latest versions)
-- 2D fallback should auto-activate
+**Cause**: Opening `index.html` directly from file system (file:// protocol) won't load CDN scripts.
 
-### File:// mode: Presets don't load
-- Expected behavior - presets require HTTP
-- Use inline scene (auto-selected)
-- Or serve via local server
+**Solutions**:
+1. **Use GitHub Pages** (recommended): Push to `main` branch, enable Pages in repo settings
+2. **Run local server**: `python3 -m http.server 8000` → visit `http://localhost:8000`
+3. **VS Code Live Server**: Install extension, right-click index.html → Open with Live Server
 
-### Audio desync
+### Infinite Loading / CDN Timeout
+
+**Cause**: Network blocking CDN, or very slow connection.
+
+**Solutions**:
+1. **Refresh the page** - sometimes CDN needs retry
+2. **Check network** - ensure you can access unpkg.com
+3. **Use GitHub Pages** - better CDN reliability on https://
+4. **Wait up to 30 seconds** - production timeout is extended for slow networks
+
+### Play Button Does Nothing
+
+- **Fixed in V2!** Two-phase init ensures UI always connects
+- Check console for `[DRONE]` logs (F12 → Console tab)
+- Verify Three.js loaded: type `THREE` in console, should show object
+
+### Black Screen
+
+- **Check WebGL support**: Visit `https://get.webgl.org/`
+- **Try Chrome/Firefox** (latest versions recommended)
+- **Check console** for `[DRONE]` error logs
+- **Fallback**: 2D Canvas should auto-activate if WebGL unavailable
+
+### Audio Desync
+
 - Reload page and try again
-- Check audio file duration matches scene
-- Try different audio file
+- Check audio duration roughly matches scene duration (18-20s)
+- Try different audio format (MP3 recommended)
+- Use browser's native audio player to verify file isn't corrupt
 
-### Recording failed
-- Chrome works best (MediaRecorder support)
-- Check disk space
-- Try shorter scene (< 30s)
+### Recording Failed
+
+- **Best browser**: Chrome (best MediaRecorder support)
+- **Check disk space** (needs ~50MB for 20s video)
+- **Try shorter scene** (< 30s recommended)
+- **Check permissions**: Browser may block downloads folder access
 
 ## 📊 Technical Details
 
