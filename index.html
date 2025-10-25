@@ -438,58 +438,76 @@
     </div>
   </div>
 
-  <!-- Three.js CDN -->
-  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
-  <script src="https://unpkg.com/three@0.160.0/examples/js/postprocessing/EffectComposer.js"></script>
-  <script src="https://unpkg.com/three@0.160.0/examples/js/postprocessing/RenderPass.js"></script>
-  <script src="https://unpkg.com/three@0.160.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
-  <script src="https://unpkg.com/three@0.160.0/examples/js/shaders/CopyShader.js"></script>
-  <script src="https://unpkg.com/three@0.160.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
-  <script src="https://unpkg.com/three@0.160.0/examples/js/postprocessing/ShaderPass.js"></script>
+  <!-- Three.js Vendor Files (Local) -->
+  <script src="vendor/three/three.min.js"></script>
+  <script src="vendor/three/Pass.js"></script>
+  <script src="vendor/three/CopyShader.js"></script>
+  <script src="vendor/three/LuminosityHighPassShader.js"></script>
+  <script src="vendor/three/EffectComposer.js"></script>
+  <script src="vendor/three/RenderPass.js"></script>
+  <script src="vendor/three/ShaderPass.js"></script>
+  <script src="vendor/three/UnrealBloomPass.js"></script>
 
   <!-- Dependency Check & Init -->
   <script>
-    // Detect if running from file:// protocol
-    const isLocal = location.protocol === 'file:';
-
-    // Wait for all dependencies to load OR timeout
+    // Wait for vendor files to load
     (function() {
-      // Longer timeout for https:// (production), immediate error for file://
-      const MAX_WAIT = isLocal ? 2000 : 30000; // 2s for file://, 30s for https://
+      const MAX_WAIT = 5000; // 5 seconds max
       const CHECK_INTERVAL = 100;
       let elapsed = 0;
 
       const checkInterval = setInterval(() => {
         elapsed += CHECK_INTERVAL;
 
-        // Check if Three.js is loaded
+        // Check if Three.js and all required classes are loaded
         if (typeof THREE !== 'undefined' &&
             typeof THREE.EffectComposer !== 'undefined' &&
-            typeof THREE.UnrealBloomPass !== 'undefined') {
+            typeof THREE.UnrealBloomPass !== 'undefined' &&
+            typeof THREE.RenderPass !== 'undefined' &&
+            typeof THREE.ShaderPass !== 'undefined' &&
+            typeof THREE.Pass !== 'undefined') {
 
           clearInterval(checkInterval);
-          console.log('[DRONE] All dependencies loaded');
+          console.log('[DRONE] ✓ All vendor files loaded successfully');
 
-          // Load main app
+          // Load main WebGL app
           const script = document.createElement('script');
           script.src = 'src/app.js';
           script.onerror = () => {
-            showError('Failed to load app.js', false);
+            console.error('[DRONE] Failed to load app.js');
+            loadFallback2D();
           };
           document.body.appendChild(script);
 
         } else if (elapsed >= MAX_WAIT) {
           clearInterval(checkInterval);
 
-          if (isLocal) {
-            showError('Local file mode detected', true);
-          } else {
-            showError('CDN loading timeout', false);
-          }
+          console.warn('[DRONE] Three.js not loaded, switching to 2D fallback');
+          loadFallback2D();
         }
       }, CHECK_INTERVAL);
 
-      function showError(message, showLocalInstructions) {
+      function loadFallback2D() {
+        const status = document.getElementById('init-status');
+        if (status) status.textContent = 'Loading 2D renderer...';
+
+        const fallback = document.createElement('script');
+        fallback.src = 'src/fallback2d.js';
+        fallback.onload = () => {
+          console.log('[DRONE] ✓ Fallback 2D loaded');
+          if (window.initFallback2D) {
+            window.initFallback2D();
+          } else {
+            showFatalError('Fallback 2D initialization failed');
+          }
+        };
+        fallback.onerror = () => {
+          showFatalError('Failed to load any renderer');
+        };
+        document.body.appendChild(fallback);
+      }
+
+      function showFatalError(message) {
         console.error('[DRONE]', message);
 
         const spinner = document.getElementById('init-spinner');
@@ -502,29 +520,13 @@
           status.className = 'error';
         }
 
-        if (instructionsBox && showLocalInstructions) {
+        if (instructionsBox) {
           instructionsBox.style.display = 'block';
           instructionsBox.className = 'instructions';
           instructionsBox.innerHTML = `
-            <strong>⚠️ Local Mode Detected</strong><br><br>
-            Opening from file system won't load CDN scripts.<br>
-            You need a local server:<br><br>
-            <strong>Option 1 - Python:</strong><br>
-            <code>python3 -m http.server 8000</code><br>
-            Then open: <code>http://localhost:8000</code><br><br>
-            <strong>Option 2 - VS Code:</strong><br>
-            Install "Live Server" extension<br>
-            Right-click index.html → Open with Live Server<br><br>
-            <strong>Option 3 - GitHub Pages:</strong><br>
-            Visit <code>https://lesaffrejb-beep.github.io/drone-night-clip/</code>
-          `;
-        } else if (instructionsBox) {
-          instructionsBox.style.display = 'block';
-          instructionsBox.className = 'instructions';
-          instructionsBox.innerHTML = `
-            <strong>⚠️ Loading Error</strong><br><br>
-            Failed to load dependencies. Try refreshing the page.<br>
-            If the problem persists, check your network connection.
+            <strong>⚠️ Critical Error</strong><br><br>
+            ${message}<br><br>
+            Please refresh the page or check the console (F12) for details.
           `;
         }
       }
