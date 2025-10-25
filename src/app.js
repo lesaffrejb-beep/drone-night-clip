@@ -176,9 +176,20 @@
     // Mark as initialized
     isInitialized = true;
 
-    // Hide splash after a moment
+    // Show UI controls after a brief moment
     setTimeout(() => {
-      document.getElementById('init-status').textContent = 'Ready - Click Start';
+      const spinner = document.getElementById('init-spinner');
+      const status = document.getElementById('init-status');
+      const buttons = document.getElementById('splash-buttons');
+      const controls = document.getElementById('splash-controls');
+
+      if (spinner) spinner.classList.add('hidden');
+      if (status) {
+        status.textContent = '✓ Ready';
+        status.className = 'success';
+      }
+      if (buttons) buttons.style.display = 'flex';
+      if (controls) controls.style.display = 'flex';
     }, 500);
 
     console.log(LOG_PREFIX, '✓ Initialization complete, render loop started');

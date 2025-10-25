@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Drone Night POV - V2 B&W</title>
+  <title>Drone Night POV - V2</title>
   <style>
     * {
       margin: 0;
@@ -13,7 +13,7 @@
 
     body {
       background: #000;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
       color: #eee;
       overflow: hidden;
       display: flex;
@@ -31,15 +31,16 @@
       align-items: center;
     }
 
-    /* 9:16 responsive canvas container */
     #canvas-wrapper {
       position: relative;
       max-width: 100vw;
       max-height: 100vh;
       aspect-ratio: 9 / 16;
       background: #000;
-      box-shadow: 0 0 60px rgba(238, 238, 238, 0.1);
-      border: 1px solid rgba(238, 238, 238, 0.05);
+      box-shadow: 0 0 80px rgba(238, 238, 238, 0.15);
+      border: 1px solid rgba(238, 238, 238, 0.08);
+      border-radius: 4px;
+      overflow: hidden;
     }
 
     canvas {
@@ -48,7 +49,6 @@
       display: block;
     }
 
-    /* UI Overlay */
     #ui-overlay {
       position: absolute;
       top: 0;
@@ -61,15 +61,15 @@
 
     .ui-panel {
       position: absolute;
-      background: rgba(0, 0, 0, 0.85);
+      background: rgba(0, 0, 0, 0.90);
       padding: 16px 20px;
       border-radius: 6px;
       pointer-events: auto;
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(238, 238, 238, 0.15);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(238, 238, 238, 0.12);
     }
 
-    /* Splash / Welcome Card */
+    /* Splash Screen */
     #splash {
       position: absolute;
       top: 50%;
@@ -78,12 +78,12 @@
       background: rgba(0, 0, 0, 0.95);
       border: 1px solid rgba(238, 238, 238, 0.2);
       border-radius: 8px;
-      padding: 32px 40px;
+      padding: 40px 48px;
       text-align: center;
-      min-width: 300px;
+      min-width: 340px;
       max-width: 90%;
       z-index: 100;
-      transition: opacity 0.3s, transform 0.3s;
+      transition: opacity 0.4s, transform 0.4s;
     }
 
     #splash.hidden {
@@ -93,93 +93,144 @@
     }
 
     #splash h1 {
-      font-size: 24px;
-      font-weight: 300;
-      letter-spacing: 2px;
-      margin-bottom: 12px;
-      color: #eee;
+      font-size: 28px;
+      font-weight: 200;
+      letter-spacing: 3px;
+      margin-bottom: 8px;
+      color: #fff;
+      text-transform: uppercase;
     }
 
     #splash .subtitle {
-      font-size: 12px;
-      color: #999;
-      margin-bottom: 24px;
+      font-size: 11px;
+      color: #888;
+      margin-bottom: 32px;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 2px;
+      font-weight: 300;
+    }
+
+    #init-status {
+      font-size: 13px;
+      color: #999;
+      margin: 24px 0 16px 0;
+      min-height: 20px;
+      font-weight: 300;
+    }
+
+    #init-status.error {
+      color: #ff6b6b;
+    }
+
+    #init-status.success {
+      color: #51cf66;
+    }
+
+    /* Spinner */
+    .spinner {
+      border: 2px solid rgba(238, 238, 238, 0.15);
+      border-top: 2px solid #eee;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .spinner.hidden {
+      display: none;
+    }
+
+    /* Buttons */
+    button {
+      background: rgba(238, 238, 238, 0.08);
+      color: #eee;
+      border: 1px solid rgba(238, 238, 238, 0.25);
+      padding: 12px 28px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 14px;
+      transition: all 0.25s;
+      font-weight: 400;
+      letter-spacing: 0.5px;
+    }
+
+    button:hover {
+      background: rgba(238, 238, 238, 0.15);
+      border-color: rgba(238, 238, 238, 0.4);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    button.primary {
+      background: rgba(238, 238, 238, 0.12);
+      border-color: rgba(238, 238, 238, 0.35);
+    }
+
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none !important;
     }
 
     #splash-buttons {
       display: flex;
       flex-direction: column;
       gap: 12px;
-      margin-bottom: 20px;
+      margin-top: 24px;
     }
 
     #splash-controls {
       display: flex;
-      gap: 8px;
-      margin-top: 16px;
+      gap: 10px;
+      margin-top: 20px;
       justify-content: center;
       flex-wrap: wrap;
-    }
-
-    /* Buttons */
-    button, input[type="file"]::file-selector-button {
-      background: rgba(238, 238, 238, 0.1);
-      color: #eee;
-      border: 1px solid rgba(238, 238, 238, 0.3);
-      padding: 10px 20px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-family: inherit;
-      font-size: 14px;
-      transition: all 0.2s;
-      font-weight: 400;
-    }
-
-    button:hover, input[type="file"]::file-selector-button:hover {
-      background: rgba(238, 238, 238, 0.2);
-      border-color: rgba(238, 238, 238, 0.5);
-    }
-
-    button:active {
-      transform: scale(0.98);
-    }
-
-    button.primary {
-      background: rgba(238, 238, 238, 0.15);
-      border-color: rgba(238, 238, 238, 0.4);
-    }
-
-    button.recording {
-      background: rgba(255, 255, 255, 0.2);
-      border-color: #eee;
-      animation: pulse 1s infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.7; }
-    }
-
-    #preset-select {
-      background: rgba(238, 238, 238, 0.1);
-      color: #eee;
-      border: 1px solid rgba(238, 238, 238, 0.3);
-      padding: 8px 14px;
-      border-radius: 4px;
-      font-family: inherit;
-      font-size: 12px;
-      cursor: pointer;
+      padding-top: 20px;
+      border-top: 1px solid rgba(238, 238, 238, 0.1);
     }
 
     input[type="file"] {
       font-size: 11px;
-      padding: 6px;
+      padding: 8px;
       color: #eee;
-      border: 1px solid rgba(238, 238, 238, 0.3);
-      border-radius: 4px;
+      border: 1px solid rgba(238, 238, 238, 0.25);
+      border-radius: 6px;
       background: rgba(238, 238, 238, 0.05);
+      cursor: pointer;
+      transition: all 0.25s;
+    }
+
+    input[type="file"]:hover {
+      background: rgba(238, 238, 238, 0.08);
+      border-color: rgba(238, 238, 238, 0.35);
+    }
+
+    select {
+      background: rgba(238, 238, 238, 0.08);
+      color: #eee;
+      border: 1px solid rgba(238, 238, 238, 0.25);
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.25s;
+    }
+
+    select:hover {
+      background: rgba(238, 238, 238, 0.12);
+      border-color: rgba(238, 238, 238, 0.35);
     }
 
     /* HUD */
@@ -187,8 +238,8 @@
       top: 20px;
       left: 20px;
       font-size: 11px;
-      line-height: 1.8;
-      min-width: 150px;
+      line-height: 2;
+      min-width: 160px;
       display: none;
       font-variant-numeric: tabular-nums;
     }
@@ -198,15 +249,44 @@
     }
 
     #hud .label {
-      color: #999;
-      font-weight: 500;
+      color: #777;
+      font-weight: 400;
       display: inline-block;
-      width: 50px;
+      width: 55px;
+      text-transform: uppercase;
+      font-size: 9px;
+      letter-spacing: 0.5px;
     }
 
-    /* Status messages */
+    #hud .value {
+      color: #eee;
+      font-weight: 300;
+    }
+
+    /* Help */
+    #help {
+      top: 20px;
+      right: 20px;
+      font-size: 10px;
+      line-height: 1.8;
+      max-width: 150px;
+    }
+
+    #help .key {
+      display: inline-block;
+      background: rgba(238, 238, 238, 0.12);
+      padding: 3px 7px;
+      border-radius: 4px;
+      margin-right: 6px;
+      color: #eee;
+      font-weight: 400;
+      font-size: 9px;
+      border: 1px solid rgba(238, 238, 238, 0.15);
+    }
+
+    /* Status */
     #status {
-      bottom: 20px;
+      bottom: 24px;
       left: 50%;
       transform: translateX(-50%);
       font-size: 11px;
@@ -214,61 +294,44 @@
       text-align: center;
       min-width: 200px;
       display: none;
+      font-weight: 300;
     }
 
     #status.visible {
       display: block;
     }
 
-    /* Loading spinner */
-    .spinner {
-      border: 2px solid rgba(238, 238, 238, 0.2);
-      border-top: 2px solid #eee;
-      border-radius: 50%;
-      width: 24px;
-      height: 24px;
-      animation: spin 0.8s linear infinite;
-      margin: 16px auto;
-    }
-
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
-    }
-
-    /* Help panel */
-    #help {
-      top: 20px;
-      right: 20px;
-      font-size: 10px;
+    /* Error instructions */
+    .instructions {
+      font-size: 11px;
+      color: #888;
       line-height: 1.6;
-      max-width: 140px;
+      margin-top: 16px;
+      text-align: left;
+      background: rgba(238, 238, 238, 0.03);
+      padding: 12px 16px;
+      border-radius: 6px;
+      border: 1px solid rgba(238, 238, 238, 0.08);
     }
 
-    #help .key {
-      display: inline-block;
-      background: rgba(238, 238, 238, 0.15);
+    .instructions code {
+      background: rgba(0, 0, 0, 0.5);
       padding: 2px 6px;
       border-radius: 3px;
-      margin-right: 4px;
-      color: #eee;
+      font-size: 10px;
+      color: #51cf66;
+    }
+
+    .instructions strong {
+      color: #fff;
       font-weight: 500;
-      font-size: 9px;
     }
   </style>
 </head>
 <body>
-  <!-- Embedded default scene for failsafe operation -->
+  <!-- Embedded scene for offline use -->
   <script type="application/json" id="scene-inline">
-{
-  "meta": {"title": "Drone Night POV - B&W", "duration": 18, "bpm": 90, "seed": 42},
-  "beats": [0, 0.67, 1.33, 2.0, 2.67, 3.33, 4.0, 4.67, 5.33, 6.0, 6.67, 7.33, 8.0, 8.67, 9.33, 10.0, 10.67, 11.33, 12.0, 12.67, 13.33, 14.0, 14.67, 15.33, 16.0, 16.67, 17.33],
-  "shots": [
-    {"name": "Survol", "time": [0, 6], "path": {"type": "catmullrom", "points": [[-40, 18, 80], [-20, 20, 60], [10, 22, 55], [30, 24, 45]]}, "camera": {"fov": [55, 60], "rollDeg": [-2, 2], "speedMul": 1.0}, "fx": {"bloom": [0.08, 0.10], "vignette": [0.25, 0.30], "neonPulse": 0.05}},
-    {"name": "Plongee", "time": [6, 12], "path": {"type": "catmullrom", "points": [[30, 24, 45], [22, 14, 30], [15, 9, 18], [10, 5, 10]]}, "camera": {"fov": [60, 74], "rollDeg": [0, 3], "speedMul": 1.4}, "fx": {"bloom": [0.10, 0.15], "vignette": [0.30, 0.35], "neonPulse": 0.10}},
-    {"name": "SousPont", "time": [12, 18], "path": {"type": "catmullrom", "points": [[10, 5, 10], [8, 4, 8], [6, 3, 6], [4, 3, 8]]}, "camera": {"fov": [72, 66], "rollDeg": [3, 0], "speedMul": 1.0}, "fx": {"bloom": [0.15, 0.12], "vignette": [0.40, 0.60], "neonPulse": 0.15, "fade": [17.5, 18.0]}}
-  ]
-}
+{"meta":{"title":"Drone Night POV","duration":18,"bpm":90,"seed":42},"beats":[0,0.67,1.33,2.0,2.67,3.33,4.0,4.67,5.33,6.0,6.67,7.33,8.0,8.67,9.33,10.0,10.67,11.33,12.0,12.67,13.33,14.0,14.67,15.33,16.0,16.67,17.33],"shots":[{"name":"Survol","time":[0,6],"path":{"type":"catmullrom","points":[[-40,18,80],[-20,20,60],[10,22,55],[30,24,45]]},"camera":{"fov":[55,60],"rollDeg":[-2,2],"speedMul":1.0},"fx":{"bloom":[0.08,0.10],"vignette":[0.25,0.30],"neonPulse":0.05}},{"name":"Plongee","time":[6,12],"path":{"type":"catmullrom","points":[[30,24,45],[22,14,30],[15,9,18],[10,5,10]]},"camera":{"fov":[60,74],"rollDeg":[0,3],"speedMul":1.4},"fx":{"bloom":[0.10,0.15],"vignette":[0.30,0.35],"neonPulse":0.10}},{"name":"SousPont","time":[12,18],"path":{"type":"catmullrom","points":[[10,5,10],[8,4,8],[6,3,6],[4,3,8]]},"camera":{"fov":[72,66],"rollDeg":[3,0],"speedMul":1.0},"fx":{"bloom":[0.15,0.12],"vignette":[0.40,0.60],"neonPulse":0.15,"fade":[17.5,18.0]}}]}
   </script>
 
   <div id="container">
@@ -276,16 +339,19 @@
       <canvas id="canvas"></canvas>
 
       <div id="ui-overlay">
-        <!-- Splash / Welcome Screen -->
+        <!-- Splash Screen -->
         <div id="splash">
-          <h1>DRONE NIGHT POV</h1>
-          <div class="subtitle">Monochrome Edition</div>
+          <h1>DRONE NIGHT</h1>
+          <div class="subtitle">Monochrome POV</div>
 
-          <div id="splash-buttons">
-            <button id="btn-start" class="primary">▶ Start</button>
+          <div class="spinner" id="init-spinner"></div>
+          <div id="init-status">Initializing...</div>
+
+          <div id="splash-buttons" style="display: none;">
+            <button id="btn-start" class="primary">▶ Start Experience</button>
           </div>
 
-          <div id="splash-controls">
+          <div id="splash-controls" style="display: none;">
             <input type="file" id="input-audio-splash" accept="audio/*" title="Load Audio">
             <select id="preset-select">
               <option value="">Default</option>
@@ -293,29 +359,26 @@
             </select>
           </div>
 
-          <div style="margin-top: 20px; font-size: 10px; color: #666;">
-            <div class="spinner"></div>
-            <div id="init-status">Initializing...</div>
-          </div>
+          <div id="instructions-box" style="display: none;"></div>
         </div>
 
-        <!-- HUD (toggle with H) -->
+        <!-- HUD -->
         <div id="hud" class="ui-panel">
-          <div><span class="label">TIME</span> <span id="hud-time">0.0s</span></div>
-          <div><span class="label">SHOT</span> <span id="hud-shot">-</span></div>
-          <div><span class="label">FPS</span> <span id="hud-fps">60</span></div>
-          <div><span class="label">SPEED</span> <span id="hud-speed">1.0x</span></div>
+          <div><span class="label">Time</span> <span class="value" id="hud-time">0.0s</span></div>
+          <div><span class="label">Shot</span> <span class="value" id="hud-shot">-</span></div>
+          <div><span class="label">FPS</span> <span class="value" id="hud-fps">60</span></div>
+          <div><span class="label">Speed</span> <span class="value" id="hud-speed">1.0x</span></div>
         </div>
 
-        <!-- Keyboard shortcuts -->
+        <!-- Help -->
         <div id="help" class="ui-panel">
-          <div><span class="key">SPACE</span> Play/Pause</div>
-          <div><span class="key">,</span> <span class="key">.</span> Speed</div>
+          <div><span class="key">SPACE</span> Play</div>
+          <div><span class="key">,</span><span class="key">.</span> Speed</div>
           <div><span class="key">H</span> HUD</div>
-          <div><span class="key">R</span> Restart</div>
+          <div><span class="key">R</span> Reset</div>
         </div>
 
-        <!-- Status bar -->
+        <!-- Status -->
         <div id="status" class="ui-panel">
           <span id="status-text">Ready</span>
         </div>
@@ -323,7 +386,7 @@
     </div>
   </div>
 
-  <!-- Three.js and postprocessing from CDN -->
+  <!-- Three.js CDN -->
   <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
   <script src="https://unpkg.com/three@0.160.0/examples/js/postprocessing/EffectComposer.js"></script>
   <script src="https://unpkg.com/three@0.160.0/examples/js/postprocessing/RenderPass.js"></script>
@@ -332,10 +395,70 @@
   <script src="https://unpkg.com/three@0.160.0/examples/js/shaders/LuminosityHighPassShader.js"></script>
   <script src="https://unpkg.com/three@0.160.0/examples/js/postprocessing/ShaderPass.js"></script>
 
-  <!-- Main application -->
-  <script src="src/app.js"></script>
+  <!-- Dependency Check & Init -->
+  <script>
+    // Wait for all dependencies to load OR timeout
+    (function() {
+      const MAX_WAIT = 8000; // 8 seconds max
+      const CHECK_INTERVAL = 100;
+      let elapsed = 0;
 
-  <!-- Canvas 2D fallback -->
-  <script src="src/fallback2d.js"></script>
+      const checkInterval = setInterval(() => {
+        elapsed += CHECK_INTERVAL;
+
+        // Check if Three.js is loaded
+        if (typeof THREE !== 'undefined' &&
+            typeof THREE.EffectComposer !== 'undefined' &&
+            typeof THREE.UnrealBloomPass !== 'undefined') {
+
+          clearInterval(checkInterval);
+          console.log('[DRONE] All dependencies loaded');
+
+          // Load main app
+          const script = document.createElement('script');
+          script.src = 'src/app.js';
+          script.onerror = () => {
+            showError('Failed to load app.js');
+          };
+          document.body.appendChild(script);
+
+        } else if (elapsed >= MAX_WAIT) {
+          clearInterval(checkInterval);
+          showError('CDN timeout - Use local server');
+        }
+      }, CHECK_INTERVAL);
+
+      function showError(message) {
+        console.error('[DRONE]', message);
+
+        const spinner = document.getElementById('init-spinner');
+        const status = document.getElementById('init-status');
+        const instructionsBox = document.getElementById('instructions-box');
+
+        if (spinner) spinner.classList.add('hidden');
+        if (status) {
+          status.textContent = message;
+          status.className = 'error';
+        }
+
+        if (instructionsBox) {
+          instructionsBox.style.display = 'block';
+          instructionsBox.className = 'instructions';
+          instructionsBox.innerHTML = `
+            <strong>⚠️ Local Mode Detected</strong><br><br>
+            This requires a local server. Try:<br><br>
+            <strong>Option 1 - Python:</strong><br>
+            <code>python3 -m http.server 8000</code><br>
+            Then open: <code>http://localhost:8000</code><br><br>
+            <strong>Option 2 - VS Code:</strong><br>
+            Install "Live Server" extension<br>
+            Right-click index.html → Open with Live Server<br><br>
+            <strong>Option 3 - Node:</strong><br>
+            <code>npx http-server -p 8000</code>
+          `;
+        }
+      }
+    })();
+  </script>
 </body>
 </html>
