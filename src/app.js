@@ -163,36 +163,76 @@
   function finishInit() {
     console.log(LOG_PREFIX, 'Finishing init...');
 
-    // Build city and bridge (uses sceneData.meta.seed if available)
-    const seed = sceneData ? (sceneData.meta.seed || 42) : 42;
-    setupCity(seed);
-    setupBridge();
-    setupPostProcessing();
+    try {
+      // Build city and bridge (uses sceneData.meta.seed if available)
+      const seed = sceneData ? (sceneData.meta.seed || 42) : 42;
+      console.log(LOG_PREFIX, 'Setting up city with seed:', seed);
+      setupCity(seed);
+      console.log(LOG_PREFIX, '✓ City setup complete');
 
-    // Start render loop (ALWAYS, even if scene data is missing)
-    lastFrameTime = performance.now();
-    requestAnimationFrame(render);
+      console.log(LOG_PREFIX, 'Setting up bridge...');
+      setupBridge();
+      console.log(LOG_PREFIX, '✓ Bridge setup complete');
 
-    // Mark as initialized
-    isInitialized = true;
+      console.log(LOG_PREFIX, 'Setting up post-processing...');
+      setupPostProcessing();
+      console.log(LOG_PREFIX, '✓ Post-processing setup complete');
 
-    // Show UI controls after a brief moment
-    setTimeout(() => {
-      const spinner = document.getElementById('init-spinner');
+      // Start render loop (ALWAYS, even if scene data is missing)
+      lastFrameTime = performance.now();
+      requestAnimationFrame(render);
+      console.log(LOG_PREFIX, '✓ Render loop started');
+
+      // Mark as initialized
+      isInitialized = true;
+
+      // Show UI controls after a brief moment
+      setTimeout(() => {
+        console.log(LOG_PREFIX, 'Showing UI controls...');
+        const spinner = document.getElementById('init-spinner');
+        const status = document.getElementById('init-status');
+        const buttons = document.getElementById('splash-buttons');
+        const controls = document.getElementById('splash-controls');
+
+        if (spinner) {
+          spinner.classList.add('hidden');
+          console.log(LOG_PREFIX, '✓ Spinner hidden');
+        }
+        if (status) {
+          status.textContent = '✓ Ready';
+          status.className = 'success';
+          console.log(LOG_PREFIX, '✓ Status updated to Ready');
+        }
+        if (buttons) {
+          buttons.style.display = 'flex';
+          console.log(LOG_PREFIX, '✓ Start button visible');
+        }
+        if (controls) {
+          controls.style.display = 'flex';
+          console.log(LOG_PREFIX, '✓ Controls visible');
+        }
+      }, 500);
+
+      console.log(LOG_PREFIX, '✓ Initialization complete, render loop started');
+    } catch (error) {
+      console.error(LOG_PREFIX, 'ERROR in finishInit():', error);
+      console.error(LOG_PREFIX, 'Error stack:', error.stack);
+
+      // Try to show error to user
       const status = document.getElementById('init-status');
-      const buttons = document.getElementById('splash-buttons');
-      const controls = document.getElementById('splash-controls');
-
-      if (spinner) spinner.classList.add('hidden');
       if (status) {
-        status.textContent = '✓ Ready';
-        status.className = 'success';
+        status.textContent = 'Init error: ' + error.message;
+        status.className = 'error';
       }
-      if (buttons) buttons.style.display = 'flex';
-      if (controls) controls.style.display = 'flex';
-    }, 500);
 
-    console.log(LOG_PREFIX, '✓ Initialization complete, render loop started');
+      // Still try to show start button
+      setTimeout(() => {
+        const spinner = document.getElementById('init-spinner');
+        const buttons = document.getElementById('splash-buttons');
+        if (spinner) spinner.classList.add('hidden');
+        if (buttons) buttons.style.display = 'flex';
+      }, 500);
+    }
   }
 
   function isWebGLAvailable() {
