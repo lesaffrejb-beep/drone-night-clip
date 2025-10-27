@@ -25,7 +25,7 @@
 - Loads instantly from disk
 
 ✅ **Correct Paths**
-- App loads from: `src/app.js`
+- App loads from: `src/main.js`
 - Fallback loads from: `src/fallback2d.js`
 - Presets load from: `presets/insane.json`
 
@@ -132,7 +132,7 @@ ffmpeg -i "drone-night-*.webm" -c:v libx264 -crf 18 -preset slow output.mp4
 1. **HTML loads** → Splash screen visible
 2. **Vendor scripts load** (8 files in parallel)
 3. **Dependency check** → Verify `THREE` + all classes
-4. **Load app.js** → Initialize WebGL renderer
+4. **Load main.js** → Initialize WebGL renderer
 5. **Scene data load** → Fetch `scene.json` (or use inline)
 6. **Render loop starts** → 60fps playback
 7. **Show Start button** → User interaction ready
@@ -236,8 +236,8 @@ ffmpeg -i "drone-night-*.webm" \
 [DRONE] Core systems initialized
 
 // If you see:
-[DRONE] Failed to load app.js
-// → Check that src/app.js exists in repo
+[DRONE] Failed to load main.js
+// → Check that src/main.js exists in repo
 
 // If you see:
 [DRONE] Three.js not loaded
@@ -279,7 +279,7 @@ git push origin main
 Or use **"Load Audio"** button in UI to upload temporarily.
 
 ### Adjust Bridge Effect
-To make the underpass (SousPont) more pronounced, edit `src/app.js` line ~380-400:
+To make the underpass (SousPont) more pronounced, adjust the bridge materials in `src/core/environment.js` around the bridge setup.
 ```javascript
 // Increase deck length for stronger tunnel effect
 const deckGeo = new THREE.BoxGeometry(15, 0.5, 25); // was 10, 0.5, 20

@@ -29,7 +29,7 @@ if (typeof THREE !== 'undefined' &&
     typeof THREE.RenderPass !== 'undefined' &&
     typeof THREE.ShaderPass !== 'undefined' &&
     typeof THREE.Pass !== 'undefined') {
-  // Load src/app.js
+  // Load src/main.js
 }
 ```
 
@@ -44,7 +44,7 @@ if (typeof THREE !== 'undefined' &&
     typeof THREE.CopyShader !== 'undefined' &&                    // NEW
     typeof THREE.LuminosityHighPassShader !== 'undefined') {      // NEW
   console.log('[DRONE] ✓ All vendor files loaded successfully (including shaders)');
-  // Load src/app.js
+  // Load src/main.js
 } else if (elapsed >= MAX_WAIT) {
   console.warn('[DRONE] Three.js or required shaders not loaded after 5s, switching to 2D fallback');
   console.warn('[DRONE] Missing deps check:', /* detailed logs */);
@@ -54,12 +54,12 @@ if (typeof THREE !== 'undefined' &&
 
 **Result:**
 - If shaders don't load in 5s → auto-switch to 2D canvas fallback
-- Never loads `app.js` with incomplete dependencies
+- Never loads the WebGL module with incomplete dependencies
 - Detailed console logs show which deps are missing
 
 ---
 
-### 2. **Defensive Polyfill (src/app.js)**
+### 2. **Defensive Polyfill (src/core/postprocessing.js)**
 
 ```javascript
 // In setupPostProcessing(), before creating passes:
@@ -80,7 +80,7 @@ if (!THREE.CopyShader) {
 
 ---
 
-### 3. **Safe Post-Processing Setup (src/app.js)**
+### 3. **Safe Post-Processing Setup (src/core/postprocessing.js)**
 
 **Before:**
 ```javascript
@@ -145,7 +145,7 @@ function setupPostProcessing() {
 
 ---
 
-### 4. **Error Recovery in finishInit() (src/app.js)**
+### 4. **Error Recovery in initialization (src/main.js)**
 
 **Before:**
 ```javascript
@@ -365,7 +365,7 @@ xdg-open index.html # Linux
 User opens page
   → vendor files load
   → CopyShader loads late or fails
-  → app.js loads
+  → main.js loads
   → setupPostProcessing() tries to create UnrealBloomPass
   → Accesses THREE.CopyShader.uniforms
   → TypeError: Cannot read properties of undefined (reading 'uniforms')
@@ -382,7 +382,7 @@ User opens page
   → vendor files load
   → Dependency check waits 5s for CopyShader + LuminosityHighPassShader
   → If missing: Load 2D fallback (Canvas animation)
-  → If present: Load app.js
+  → If present: Load main.js
     → setupPostProcessing() validates shaders exist
     → If validation fails: Skip effects, plain render, "safe mode"
     → If validation passes: Create bloom + vignette

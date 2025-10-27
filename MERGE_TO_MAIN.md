@@ -14,7 +14,7 @@ The **FIXED version** is on branch: `claude/drone-night-clip-setup-011CUTT6Cgh6z
 Commit: `0fb670a` with:
 - ✅ Vendor files (`vendor/three/*.js` - 690KB local, zero CDN)
 - ✅ All Three.js files working offline
-- ✅ Correct paths (`src/app.js`, `presets/insane.json`)
+- ✅ Correct paths (`src/main.js`, `presets/insane.json`)
 - ✅ Auto 2D fallback
 - ✅ B&W style preserved
 
@@ -75,7 +75,7 @@ You should see:
 
 ## Files Are Correct
 
-✅ `src/app.js` exists (not at root)
+✅ `src/main.js` exists (not at root)
 ✅ `src/fallback2d.js` exists
 ✅ `presets/insane.json` exists (not at root)
 ✅ All paths in code are correct

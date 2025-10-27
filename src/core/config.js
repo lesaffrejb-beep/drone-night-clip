@@ -1,0 +1,10 @@
+export const LOG_PREFIX = '[DRONE]';
+export const TARGET_WIDTH = 1080;
+export const TARGET_HEIGHT = 1920;
+export const TARGET_ASPECT = TARGET_WIDTH / TARGET_HEIGHT;
+export const TARGET_DURATION = 30;
+export const DEFAULT_BPM = 120;
+export const BASE_FOG_DENSITY = 0.015;
+export const MAX_WAIT_FOR_VENDOR_MS = 5000;
+export const VENDOR_CHECK_INTERVAL_MS = 100;
+export const RECORDING_FPS = 25;

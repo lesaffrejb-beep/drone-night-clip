@@ -905,9 +905,10 @@
 
           // Load main WebGL app
           const script = document.createElement('script');
-          script.src = 'src/app.js';
+          script.type = 'module';
+          script.src = 'src/main.js';
           script.onerror = () => {
-            console.error('[DRONE] Failed to load app.js');
+            console.error('[DRONE] Failed to load main.js');
             loadFallback2D();
           };
           document.body.appendChild(script);

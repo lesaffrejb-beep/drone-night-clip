@@ -221,12 +221,14 @@ Added comprehensive troubleshooting guide:
 
 ## 📦 Changed Files
 
-### `src/app.js`
-- `loadSceneDataAsync()`: Added 3s timeout with AbortController
-- `setupUI()`: Preset selector with timeout + fallback
-- `setupPostProcessing()`: ShaderMaterial instead of plain object
-- `startRecording()`: Better timestamp format
-- `btn-start`: Auto-starts recording on click
+### `src/main.js`
+- Replaced monolithic `app.js` entry point with modular bootstrap that delegates to `src/core/*` utilities.
+
+### `src/core/*`
+- Split renderer, environment, audio, tempo, UI, and scene-management logic into focused modules to reduce merge conflicts and simplify maintenance.
+- Preset loader now lives in `src/core/ui.js` with timeout + fallback handling.
+- Post-processing safeguards moved to `src/core/postprocessing.js`.
+- Recording/export logic isolated in `src/core/recording.js` with improved timestamping.
 
 ### `README.md`
 - New "Troubleshooting" section (7 sub-sections)

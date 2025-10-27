@@ -195,7 +195,7 @@ ffmpeg -i drone-night-*.webm -c:v libx264 -vf "scale=1080:1920" -crf 23 output.m
    ```html
    <option value="my-preset">My Preset</option>
    ```
-3. Update `src/app.js` line 883 preset loader
+3. Update the preset loader in `src/core/ui.js`
 
 ## 🧪 Troubleshooting
 
@@ -285,7 +285,7 @@ All Three.js dependencies are vendored locally in `vendor/three/`:
 1. **Vendor files**: Local Three.js → no network dependency
 2. **2D fallback**: Auto-loads if WebGL unavailable (fallback2d.js)
 3. **Inline scene**: Embedded in `<script id="scene-inline">`
-4. **Emergency scene**: Hardcoded minimal flight in app.js
+4. **Emergency scene**: Hardcoded minimal flight in `src/core/sceneData.js`
 5. **Render loop**: Always runs, never blocks
 6. **UI**: Setup before data load
 7. **Audio**: Optional, never required

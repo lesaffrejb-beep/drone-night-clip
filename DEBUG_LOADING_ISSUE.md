@@ -3,7 +3,7 @@
 ## What I've Done
 
 ### 1. Added Extensive Logging (Commit 2272de1)
-Modified `src/app.js` finishInit() function with detailed console logging:
+Modified initialization pipeline (now orchestrated from `src/main.js`) with detailed console logging:
 - Logs each step: city setup, bridge setup, post-processing, render loop
 - Logs UI updates: spinner hide, status change, button visibility
 - Added try/catch to show errors to user
@@ -28,7 +28,7 @@ Modified `src/app.js` finishInit() function with detailed console logging:
 - #splash-buttons
 - #splash-controls
 
-✅ Dependency checker in index.html waits for all THREE.js classes before loading app.js
+✅ Dependency checker in index.html waits for all THREE.js classes before loading the main module
 
 ### 3. Pushed Changes
 All debugging code is now on branch: `claude/drone-night-clip-setup-011CUTT6Cgh6zx5Jenf6PeMX`
