@@ -290,6 +290,78 @@ All Three.js dependencies are vendored locally in `vendor/three/`:
 6. **UI**: Setup before data load
 7. **Audio**: Optional, never required
 
+## 🔧 Troubleshooting
+
+### Stuck at "Loading scene..."
+
+**Expected Console Logs:**
+```
+[DRONE] ✓ All vendor files loaded successfully
+[DRONE] WebGL available
+[DRONE] Core systems initialized
+[DRONE] ✓ Loaded scene.json
+[DRONE] Finishing init...
+[DRONE] ✓ City setup complete
+[DRONE] ✓ Bridge setup complete
+[DRONE] ✓ Post-processing setup complete
+[DRONE] ✓ Render loop started
+[DRONE] ✓ Initialization complete
+```
+
+**If stuck:**
+1. Open browser DevTools (F12) → Console tab
+2. Look for error messages starting with `[DRONE]`
+3. Check which step failed (city, bridge, or post-processing)
+4. If "Init error: Cannot read properties..." → vendor file missing or corrupted
+5. Clear cache and refresh (Ctrl+Shift+R / Cmd+Shift+R)
+
+### Convert .webm to .mp4
+
+The app exports `.webm` files. To convert to MP4 for wider compatibility:
+
+```bash
+# Basic conversion
+ffmpeg -i drone-night-clip-2025-10-27-123045.webm -c:v libx264 -crf 18 -pix_fmt yuv420p output.mp4
+
+# High quality (slower)
+ffmpeg -i drone-night-clip-*.webm -c:v libx264 -preset slow -crf 18 -pix_fmt yuv420p output.mp4
+
+# Instagram/Social (1080x1920, 9:16)
+ffmpeg -i drone-night-clip-*.webm -vf "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2" -c:v libx264 -preset slow -crf 20 -pix_fmt yuv420p output-instagram.mp4
+```
+
+### Preset "Insane" Not Loading
+
+If the Insane preset fails to load:
+- The app automatically falls back to the default scene
+- You'll see: "⚠ Preset unavailable, using default"
+- Check browser console for fetch errors
+- Verify `presets/insane.json` exists in your deployment
+
+### No Audio
+
+Audio is **optional**. The animation uses beat timeline fallback if no audio is loaded:
+- Visual timing works without audio
+- BPM from scene.json drives beat jitter
+- "Load Audio" button lets you add your own track
+
+### Performance Issues
+
+If FPS drops below 30:
+- Press `H` to hide HUD (reduces draw calls)
+- Close other browser tabs
+- Try Firefox/Chrome instead of Safari
+- Disable browser extensions
+- Reduce window size
+
+### Recording Issues
+
+If recording doesn't download:
+- Check browser permissions for downloads
+- Try Chrome/Edge (best MediaRecorder support)
+- Check available disk space
+- Recording auto-stops at scene end (18-20s)
+
 ## 📄 License
 
 MIT License - Free to use, modify, distribute.
