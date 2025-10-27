@@ -442,6 +442,7 @@
   <script src="vendor/three/three.min.js"></script>
   <script src="vendor/three/Pass.js"></script>
   <script src="vendor/three/CopyShader.js"></script>
+  <script src="vendor/three/GaussianBlurShader.js"></script>
   <script src="vendor/three/LuminosityHighPassShader.js"></script>
   <script src="vendor/three/EffectComposer.js"></script>
   <script src="vendor/three/RenderPass.js"></script>
@@ -467,7 +468,8 @@
             typeof THREE.ShaderPass !== 'undefined' &&
             typeof THREE.Pass !== 'undefined' &&
             typeof THREE.CopyShader !== 'undefined' &&
-            typeof THREE.LuminosityHighPassShader !== 'undefined') {
+            typeof THREE.LuminosityHighPassShader !== 'undefined' &&
+            typeof THREE.GaussianBlurShader !== 'undefined') {
 
           clearInterval(checkInterval);
           console.log('[DRONE] ✓ All vendor files loaded successfully (including shaders)');
