@@ -479,7 +479,8 @@
     composer.addPass(bloomPass);
 
     // Vignette + Grain shader (B&W only)
-    const bwShader = {
+    // Create ShaderMaterial directly to avoid UniformsUtils dependency
+    const bwMaterial = new THREE.ShaderMaterial({
       uniforms: {
         tDiffuse: { value: null },
         uVignette: { value: 0.4 },
@@ -534,9 +535,9 @@
           gl_FragColor = color;
         }
       `
-    };
+    });
 
-    vignettePass = new THREE.ShaderPass(bwShader);
+    vignettePass = new THREE.ShaderPass(bwMaterial);
     vignettePass.renderToScreen = true;
     composer.addPass(vignettePass);
 
