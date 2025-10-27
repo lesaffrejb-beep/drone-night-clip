@@ -52,6 +52,12 @@
   let windowLights = [];
   let accentLights = [];
   let underbridgeLights = [];
+  let skylineLayers = [];
+  let godRayMeshes = [];
+  let droneTrailMeshes = [];
+  let bridgeSearchLights = [];
+  let starfield = null;
+  let moonMesh = null;
   let currentSeed = 42;
 
   let baseExposure = 1.0;
@@ -69,6 +75,7 @@
   let audioData = null;
   let audioElement = null;
   let hasAudio = false;
+  let audioObjectURL = null;
 
   // Recording
   let mediaRecorder = null;
@@ -463,6 +470,11 @@
 
     windowLights = [];
     accentLights = [];
+    skylineLayers = [];
+    godRayMeshes = [];
+    droneTrailMeshes = [];
+    starfield = null;
+    moonMesh = null;
 
     const gridSize = 120;
     const blockSize = 12;
@@ -560,7 +572,163 @@
     ground.position.y = 0;
     cityGroup.add(ground);
 
+    createParallaxSkyline(cityGroup, seededRandom(seed + 101));
+    createCelestialElements(cityGroup, seededRandom(seed + 202));
+    createDroneTrails(cityGroup, seededRandom(seed + 303));
+
     console.log(LOG_PREFIX, `City generated: ${buildingCount} buildings (B&W)`);
+  }
+
+  function createParallaxSkyline(parent, rng) {
+    const layers = [
+      { depth: -140, opacity: 0.28, brightness: 0.14, parallax: 0.22, min: 18, max: 44 },
+      { depth: -180, opacity: 0.22, brightness: 0.18, parallax: 0.16, min: 26, max: 58 },
+      { depth: -220, opacity: 0.18, brightness: 0.22, parallax: 0.12, min: 32, max: 74 }
+    ];
+
+    layers.forEach((layer, index) => {
+      const skyline = new THREE.Group();
+      skyline.position.z = layer.depth;
+
+      for (let x = -200; x <= 200; x += 5) {
+        const width = 3 + rng() * 7;
+        const height = layer.min + rng() * (layer.max - layer.min);
+        const geometry = new THREE.PlaneGeometry(1, 1);
+        const brightness = layer.brightness + rng() * 0.08 + index * 0.03;
+        const material = new THREE.MeshBasicMaterial({
+          color: new THREE.Color(brightness, brightness, brightness),
+          transparent: true,
+          opacity: layer.opacity,
+          depthWrite: false
+        });
+
+        const slab = new THREE.Mesh(geometry, material);
+        slab.scale.set(width, height, 1);
+        slab.position.set(x + rng() * 3, height / 2 + 4 * index, 0);
+        slab.userData.baseOpacity = layer.opacity;
+        slab.userData.flicker = 0.5 + rng() * 0.8;
+        skyline.add(slab);
+      }
+
+      skylineLayers.push({ group: skyline, parallax: layer.parallax });
+      parent.add(skyline);
+    });
+  }
+
+  function createCelestialElements(parent, rng) {
+    const starCount = 320;
+    const positions = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount; i++) {
+      positions[i * 3] = (rng() - 0.5) * 380;
+      positions[i * 3 + 1] = 40 + rng() * 140;
+      positions[i * 3 + 2] = -160 - rng() * 160;
+    }
+
+    const starGeometry = new THREE.BufferGeometry();
+    starGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const starMaterial = new THREE.PointsMaterial({
+      color: 0xffffff,
+      size: 0.9,
+      sizeAttenuation: true,
+      transparent: true,
+      opacity: 0.32,
+      depthWrite: false
+    });
+
+    starfield = new THREE.Points(starGeometry, starMaterial);
+    starfield.userData.baseOpacity = 0.3;
+    parent.add(starfield);
+
+    const moonGeo = new THREE.CircleGeometry(7.5, 64);
+    const moonMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.82,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+    moonMesh = new THREE.Mesh(moonGeo, moonMat);
+    moonMesh.position.set(-46, 88, -190);
+    moonMesh.userData.baseOpacity = 0.82;
+    parent.add(moonMesh);
+
+    const moonGlowGeo = new THREE.CircleGeometry(12, 64);
+    const moonGlowMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0.18,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending
+    });
+    const moonGlow = new THREE.Mesh(moonGlowGeo, moonGlowMat);
+    moonGlow.position.copy(moonMesh.position);
+    moonGlow.userData = { baseOpacity: 0.18, swing: 0, speed: 0, isGlow: true };
+    parent.add(moonGlow);
+    godRayMeshes.push(moonGlow);
+
+    const rayGeo = new THREE.PlaneGeometry(24, 170);
+    for (let i = 0; i < 4; i++) {
+      const opacity = 0.07 + rng() * 0.05;
+      const rayMat = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending
+      });
+      const ray = new THREE.Mesh(rayGeo.clone(), rayMat);
+      ray.position.set(-46 + i * 7, 42 + rng() * 10, -170 - i * 12);
+      ray.rotation.set(-Math.PI / 2 + 0.12 * (i % 2 === 0 ? 1 : -1), 0.14 * (i - 1.5), 0);
+      ray.userData = {
+        baseOpacity: opacity,
+        swing: 0.25 + rng() * 0.25,
+        speed: 0.25 + rng() * 0.18,
+        isGlow: false
+      };
+      parent.add(ray);
+      godRayMeshes.push(ray);
+    }
+  }
+
+  function createDroneTrails(parent, rng) {
+    const curves = [
+      new THREE.CatmullRomCurve3([
+        new THREE.Vector3(-44, 42, 130),
+        new THREE.Vector3(-20, 36, 90),
+        new THREE.Vector3(-6, 28, 50),
+        new THREE.Vector3(8, 22, 12)
+      ]),
+      new THREE.CatmullRomCurve3([
+        new THREE.Vector3(12, 12, 36),
+        new THREE.Vector3(9, 8, 12),
+        new THREE.Vector3(7, 6.5, -18),
+        new THREE.Vector3(5, 7, -52)
+      ]),
+      new THREE.CatmullRomCurve3([
+        new THREE.Vector3(4, 6, -14),
+        new THREE.Vector3(6, 5.4, -28),
+        new THREE.Vector3(8.5, 5.2, -44),
+        new THREE.Vector3(12, 6.2, -68)
+      ])
+    ];
+
+    curves.forEach((curve) => {
+      const geometry = new THREE.TubeGeometry(curve, 220, 0.18 + rng() * 0.08, 12, false);
+      const material = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.24,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending
+      });
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.userData.baseOpacity = 0.2 + rng() * 0.25;
+      mesh.userData.offset = rng() * Math.PI * 2;
+      mesh.userData.wave = 0.5 + rng() * 0.7;
+      parent.add(mesh);
+      droneTrailMeshes.push(mesh);
+    });
   }
 
   // ============================================================================
@@ -572,6 +740,7 @@
     scene.add(bridgeGroup);
 
     underbridgeLights = [];
+    bridgeSearchLights = [];
 
     const archCurve = new THREE.QuadraticBezierCurve3(
       new THREE.Vector3(3, 3, 4),
@@ -644,6 +813,24 @@
       bridgeGroup.add(cap);
     }
 
+    const beamGeo = new THREE.ConeGeometry(1.1, 10, 28, 1, true).rotateX(Math.PI);
+    for (let i = -1; i <= 1; i++) {
+      const beamMat = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0.16 + lampRng() * 0.08,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide
+      });
+      const beam = new THREE.Mesh(beamGeo.clone(), beamMat);
+      beam.position.set(7 + i * 2.6, 8.35, 6);
+      beam.userData.baseOpacity = beam.material.opacity;
+      beam.userData.speed = 0.6 + lampRng() * 0.4;
+      bridgeGroup.add(beam);
+      bridgeSearchLights.push(beam);
+    }
+
     console.log(LOG_PREFIX, 'Bridge created (B&W)');
   }
 
@@ -677,6 +864,12 @@
     windowLights = [];
     accentLights = [];
     underbridgeLights = [];
+    skylineLayers = [];
+    godRayMeshes = [];
+    droneTrailMeshes = [];
+    bridgeSearchLights = [];
+    starfield = null;
+    moonMesh = null;
   }
 
   function rebuildEnvironmentForScene() {
@@ -1005,10 +1198,6 @@
   }
 
   function updateCityLights() {
-    if (windowLights.length === 0 && accentLights.length === 0 && underbridgeLights.length === 0) {
-      return;
-    }
-
     const sparkle = currentShot && currentShot.fx ? (currentShot.fx.sparkle || 0) : 0;
     const pulse = tempoState.pulse;
     const accent = tempoState.accent;
@@ -1040,25 +1229,143 @@
     });
   }
 
+  function updateCinematicElements(deltaSeconds) {
+    deltaSeconds = Number.isFinite(deltaSeconds) ? deltaSeconds : 0;
+    const pulse = tempoState.pulse;
+    const accent = tempoState.accent;
+    const audioPulse = tempoState.audioPulse;
+    const energy = tempoState.energy;
+    const time = currentTime;
+
+    if (camera) {
+      skylineLayers.forEach((layer) => {
+        if (!layer || !layer.group) return;
+        const parallax = typeof layer.parallax === 'number' ? layer.parallax : 0.1;
+        layer.group.position.x = -camera.position.x * parallax;
+        layer.group.children.forEach((child) => {
+          if (!child.material) return;
+          const base = child.userData && child.userData.baseOpacity ? child.userData.baseOpacity : 0.2;
+          const flicker = child.userData && child.userData.flicker ? child.userData.flicker : 0.5;
+          const target = base + (pulse * 0.08 + audioPulse * 0.16 + accent * 0.12 + energy * 0.12) * flicker;
+          child.material.opacity = THREE.MathUtils.lerp(child.material.opacity, Math.min(1.0, target), 0.08);
+        });
+      });
+    }
+
+    if (moonMesh && moonMesh.material) {
+      const base = moonMesh.userData && moonMesh.userData.baseOpacity ? moonMesh.userData.baseOpacity : 0.78;
+      const target = base + (accent * 0.24 + audioPulse * 0.28 + energy * 0.22);
+      moonMesh.material.opacity = THREE.MathUtils.lerp(moonMesh.material.opacity, Math.min(1.2, target), 0.12);
+      moonMesh.rotation.z = Math.sin(time * 0.05) * 0.04;
+    }
+
+    godRayMeshes.forEach((mesh, index) => {
+      if (!mesh || !mesh.material) return;
+      const base = mesh.userData && mesh.userData.baseOpacity ? mesh.userData.baseOpacity : 0.1;
+      const swing = mesh.userData && mesh.userData.swing ? mesh.userData.swing : 0;
+      const speed = mesh.userData && mesh.userData.speed ? mesh.userData.speed : 0.2;
+      const target = base + (pulse * 0.18 + audioPulse * 0.22 + energy * 0.2 + accent * 0.16);
+      mesh.material.opacity = THREE.MathUtils.lerp(mesh.material.opacity, Math.min(0.85, target), 0.1);
+
+      if (!mesh.userData || !mesh.userData.isGlow) {
+        mesh.rotation.y = Math.sin(time * speed + index) * swing;
+      } else {
+        mesh.rotation.z = Math.sin(time * 0.4) * 0.05;
+      }
+    });
+
+    if (starfield && starfield.material) {
+      const base = starfield.userData && starfield.userData.baseOpacity ? starfield.userData.baseOpacity : 0.28;
+      const target = base + (audioPulse * 0.18 + accent * 0.12);
+      starfield.material.opacity = THREE.MathUtils.lerp(starfield.material.opacity, Math.min(0.8, target), 0.06);
+      starfield.rotation.z += deltaSeconds * 0.08;
+    }
+
+    droneTrailMeshes.forEach((mesh) => {
+      if (!mesh || !mesh.material) return;
+      const base = mesh.userData && mesh.userData.baseOpacity ? mesh.userData.baseOpacity : 0.2;
+      const offset = mesh.userData && mesh.userData.offset ? mesh.userData.offset : 0;
+      const wave = mesh.userData && mesh.userData.wave ? mesh.userData.wave : 0.5;
+      const osc = Math.sin(time * (1.4 + wave * 0.6) + offset) * 0.1;
+      const target = base + osc + pulse * 0.18 + audioPulse * 0.24 + accent * 0.12;
+      mesh.material.opacity = THREE.MathUtils.lerp(mesh.material.opacity, THREE.MathUtils.clamp(target, 0, 1), 0.12);
+    });
+
+    bridgeSearchLights.forEach((mesh, idx) => {
+      if (!mesh || !mesh.material) return;
+      mesh.rotation.y += deltaSeconds * (mesh.userData && mesh.userData.speed ? mesh.userData.speed : 0.6);
+      const base = mesh.userData && mesh.userData.baseOpacity ? mesh.userData.baseOpacity : 0.18;
+      const target = base + pulse * 0.24 + audioPulse * 0.3 + energy * 0.18 + accent * 0.15;
+      mesh.material.opacity = THREE.MathUtils.lerp(mesh.material.opacity, Math.min(0.9, target), 0.18);
+    });
+  }
+
   // ============================================================================
   // AUDIO (OPTIONAL, NEVER BLOCKS)
   // ============================================================================
 
+  function isAudioFile(file) {
+    if (!file) return false;
+    if (file.type && file.type.startsWith('audio/')) {
+      return true;
+    }
+    const name = (file.name || '').toLowerCase();
+    return ['.mp3', '.wav', '.aiff', '.aif', '.aac', '.ogg', '.flac', '.m4a', '.mp4']
+      .some((ext) => name.endsWith(ext));
+  }
+
+  function formatDuration(seconds) {
+    if (!Number.isFinite(seconds) || seconds <= 0) {
+      return '';
+    }
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.max(0, Math.round(seconds % 60)).toString().padStart(2, '0');
+    return `${mins}:${secs}`;
+  }
+
   function setupAudio(audioFile) {
     console.log(LOG_PREFIX, 'Setting up audio...');
     try {
+      if (!isAudioFile(audioFile)) {
+        showStatus('Dépose un fichier audio (MP3, WAV, AIFF...)', 2800);
+        return;
+      }
+
       if (!audioContext) {
         audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      } else if (audioContext.state === 'suspended') {
+        audioContext.resume().catch((err) => {
+          console.warn(LOG_PREFIX, 'AudioContext resume failed:', err);
+        });
+      }
+
+      if (audioSource) {
+        try {
+          audioSource.disconnect();
+        } catch (disconnectErr) {
+          console.warn(LOG_PREFIX, 'Audio source disconnect failed:', disconnectErr);
+        }
+        audioSource = null;
       }
 
       if (audioElement) {
         audioElement.pause();
-        audioElement.remove();
+        audioElement.src = '';
+        audioElement.load();
+      }
+
+      if (audioObjectURL) {
+        URL.revokeObjectURL(audioObjectURL);
+        audioObjectURL = null;
       }
 
       audioElement = document.createElement('audio');
-      audioElement.src = URL.createObjectURL(audioFile);
-      audioElement.loop = false;
+      audioElement.crossOrigin = 'anonymous';
+      audioObjectURL = URL.createObjectURL(audioFile);
+      audioElement.src = audioObjectURL;
+      audioElement.loop = true;
+      audioElement.playbackRate = playbackSpeed;
+      audioElement.load();
 
       analyser = audioContext.createAnalyser();
       analyser.fftSize = 512;
@@ -1069,16 +1376,31 @@
       audioSource.connect(analyser);
       analyser.connect(audioContext.destination);
 
+      audioElement.addEventListener('loadedmetadata', () => {
+        const formatted = formatDuration(audioElement.duration);
+        if (formatted) {
+          showStatus(`Audio chargé · ${formatted}`, 2600);
+        } else {
+          showStatus('Audio chargé', 2200);
+        }
+        console.log(LOG_PREFIX, 'Audio duration:', audioElement.duration);
+      }, { once: true });
+
+      audioElement.addEventListener('error', (event) => {
+        console.warn(LOG_PREFIX, 'Audio element error:', event);
+        showStatus('Lecture audio impossible', 3000);
+      });
+
       hasAudio = true;
-      showStatus('Audio loaded', 2000);
       console.log(LOG_PREFIX, '✓ Audio ready');
 
       if (audioFilenameEl) {
-        audioFilenameEl.textContent = audioFile.name;
+        audioFilenameEl.textContent = audioFile.name || 'Custom track';
       }
 
+      audioElement.currentTime = Math.max(0, Math.min(currentTime, audioElement.duration || currentTime));
+
       if (isPlaying) {
-        audioElement.currentTime = currentTime;
         audioElement.play().catch(err => {
           console.warn(LOG_PREFIX, 'Audio play failed:', err);
         });
@@ -1147,6 +1469,7 @@
       syncPlayStateUI();
       if (audioElement) {
         audioElement.currentTime = 0;
+        audioElement.playbackRate = playbackSpeed;
         audioElement.play().catch(e => console.warn(LOG_PREFIX, 'Audio play error:', e));
       }
 
@@ -1323,6 +1646,7 @@
       updateTempoState();
       updateCameraPath();
       updateCityLights();
+      updateCinematicElements(delta / 1000);
 
       if (composer) {
         composer.render();
@@ -1363,6 +1687,9 @@
     modePillEl = document.getElementById('mode-pill');
     audioFilenameEl = document.getElementById('audio-filename');
     presetLabelEl = document.getElementById('preset-label');
+    const audioInputMain = document.getElementById('input-audio-main');
+    const audioChip = document.getElementById('audio-chip');
+    const dropOverlay = document.getElementById('drop-overlay');
 
     if (audioFilenameEl) {
       audioFilenameEl.textContent = 'No track';
@@ -1370,6 +1697,15 @@
     if (presetLabelEl) {
       presetLabelEl.textContent = 'Default';
     }
+
+    const handleAudioFile = (file) => {
+      if (!file) return;
+      if (dropOverlay) {
+        dropOverlay.classList.remove('visible');
+        dropOverlay.setAttribute('aria-hidden', 'true');
+      }
+      setupAudio(file);
+    };
 
     // Start button (splash screen)
     const btnStart = document.getElementById('btn-start');
@@ -1404,6 +1740,7 @@
         isPlaying = !isPlaying;
         if (isPlaying) {
           if (audioElement) {
+            audioElement.playbackRate = playbackSpeed;
             audioElement.play().catch(err => {
               console.warn(LOG_PREFIX, 'Audio play error:', err);
             });
@@ -1423,6 +1760,7 @@
         currentTime = 0;
         if (audioElement) {
           audioElement.currentTime = 0;
+          audioElement.playbackRate = playbackSpeed;
         }
         tempoState.beatIndex = 0;
         tempoState.lastBeatTime = 0;
@@ -1441,9 +1779,86 @@
       audioInputSplash.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
-          setupAudio(file);
+          handleAudioFile(file);
+        }
+        e.target.value = '';
+      });
+    }
+
+    if (audioInputMain) {
+      audioInputMain.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          handleAudioFile(file);
+        }
+        e.target.value = '';
+      });
+    }
+
+    if (audioChip && audioInputMain) {
+      audioChip.addEventListener('click', () => {
+        audioInputMain.click();
+      });
+      audioChip.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          audioInputMain.click();
         }
       });
+    }
+
+    if (dropOverlay) {
+      let dragDepth = 0;
+      const showOverlay = () => {
+        dropOverlay.classList.add('visible');
+        dropOverlay.setAttribute('aria-hidden', 'false');
+      };
+      const hideOverlay = () => {
+        dragDepth = 0;
+        dropOverlay.classList.remove('visible');
+        dropOverlay.setAttribute('aria-hidden', 'true');
+      };
+
+      dropOverlay.addEventListener('click', () => hideOverlay());
+
+      window.addEventListener('dragenter', (event) => {
+        const hasFiles = event.dataTransfer && Array.from(event.dataTransfer.types || []).includes('Files');
+        if (!hasFiles) return;
+        dragDepth += 1;
+        showOverlay();
+        event.preventDefault();
+      });
+
+      window.addEventListener('dragover', (event) => {
+        const hasFiles = event.dataTransfer && Array.from(event.dataTransfer.types || []).includes('Files');
+        if (!hasFiles) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'copy';
+        if (!dropOverlay.classList.contains('visible')) {
+          showOverlay();
+        }
+      });
+
+      window.addEventListener('dragleave', () => {
+        dragDepth = Math.max(0, dragDepth - 1);
+        if (dragDepth === 0) {
+          hideOverlay();
+        }
+      });
+
+      window.addEventListener('drop', (event) => {
+        const files = Array.from((event.dataTransfer && event.dataTransfer.files) || []);
+        hideOverlay();
+        event.preventDefault();
+        const audioFile = files.find((file) => isAudioFile(file));
+        if (audioFile) {
+          handleAudioFile(audioFile);
+        } else if (files.length) {
+          showStatus('Dépose un fichier audio (MP3, WAV, AIFF...)', 2800);
+        }
+      });
+
+      window.addEventListener('dragend', () => hideOverlay());
     }
 
     bpmInputEl = document.getElementById('input-bpm');
@@ -1530,6 +1945,7 @@
           if (document.getElementById('splash').classList.contains('hidden')) {
             isPlaying = !isPlaying;
             if (isPlaying && audioElement) {
+              audioElement.playbackRate = playbackSpeed;
               audioElement.play().catch(err => {
                 console.warn(LOG_PREFIX, 'Audio play error:', err);
               });
@@ -1554,18 +1970,27 @@
 
         case ',':
           playbackSpeed = Math.max(0.5, playbackSpeed - 0.25);
+          if (audioElement) {
+            audioElement.playbackRate = playbackSpeed;
+          }
           console.log(LOG_PREFIX, 'Speed:', playbackSpeed);
           break;
 
         case '.':
           playbackSpeed = Math.min(2.0, playbackSpeed + 0.25);
+          if (audioElement) {
+            audioElement.playbackRate = playbackSpeed;
+          }
           console.log(LOG_PREFIX, 'Speed:', playbackSpeed);
           break;
 
         case 'r':
         case 'R':
           currentTime = 0;
-          if (audioElement) audioElement.currentTime = 0;
+          if (audioElement) {
+            audioElement.currentTime = 0;
+            audioElement.playbackRate = playbackSpeed;
+          }
           console.log(LOG_PREFIX, 'Restarted');
           updateTimeline();
           break;

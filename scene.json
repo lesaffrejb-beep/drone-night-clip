@@ -3,80 +3,80 @@
     "title": "Drone Night POV · Moonrun",
     "duration": 30,
     "bpm": 118,
-    "seed": 77
+    "seed": 109
   },
   "beats": [],
   "shots": [
     {
-      "name": "Lune Haute",
+      "name": "Ascension Lune",
       "time": [0, 8],
       "path": {
         "type": "catmullrom",
         "points": [
-          [-60, 72, 120],
-          [-30, 60, 110],
-          [-6, 48, 92],
-          [10, 38, 70],
-          [18, 30, 48]
+          [-64, 78, 140],
+          [-44, 70, 116],
+          [-18, 56, 90],
+          [2, 44, 66],
+          [18, 32, 44]
         ]
       },
       "camera": {
-        "fov": [52, 62],
-        "rollDeg": [-4, 2],
-        "oscillation": 0.35,
-        "tempoFov": 9,
-        "tempoRoll": 0.12,
-        "tempoShake": 0.45,
-        "tempoPush": 1.8,
-        "tempoLift": 0.5,
-        "tempoWarp": 0.35,
+        "fov": [52, 66],
+        "rollDeg": [-6, 4],
+        "oscillation": 0.42,
+        "tempoFov": 10,
+        "tempoRoll": 0.16,
+        "tempoShake": 0.56,
+        "tempoPush": 2.1,
+        "tempoLift": 0.6,
+        "tempoWarp": 0.42,
         "ease": "easeInOut"
       },
       "fx": {
-        "bloom": [0.24, 0.3],
-        "vignette": [0.26, 0.32],
-        "neonPulse": 0.4,
-        "sparkle": 0.32,
-        "flash": 0.12,
-        "exposure": 0.92,
+        "bloom": [0.28, 0.36],
+        "vignette": [0.26, 0.38],
+        "neonPulse": 0.52,
+        "sparkle": 0.46,
+        "flash": 0.16,
+        "exposure": 0.94,
         "haze": 0.011,
-        "hazePulse": 0.006
+        "hazePulse": 0.007
       }
     },
     {
-      "name": "Descente Canyon",
+      "name": "Canyon Hypersonique",
       "time": [8, 16],
       "path": {
         "type": "catmullrom",
         "points": [
-          [18, 30, 48],
-          [15, 24, 36],
-          [11, 17, 24],
-          [8, 11, 14],
-          [7, 8, 6]
+          [18, 32, 44],
+          [14, 24, 30],
+          [10, 16, 18],
+          [7, 10, 6],
+          [6, 6, 0]
         ]
       },
       "camera": {
-        "fov": [58, 76],
-        "rollDeg": [-1, 4],
-        "oscillation": 0.55,
-        "tempoFov": 12,
-        "tempoRoll": 0.18,
-        "tempoShake": 0.7,
-        "tempoPush": 2.4,
-        "tempoLift": 0.3,
-        "tempoWarp": 0.45,
+        "fov": [60, 80],
+        "rollDeg": [-2, 6],
+        "oscillation": 0.6,
+        "tempoFov": 13,
+        "tempoRoll": 0.22,
+        "tempoShake": 0.82,
+        "tempoPush": 2.6,
+        "tempoLift": 0.34,
+        "tempoWarp": 0.48,
         "ease": "easeIn"
       },
       "fx": {
-        "bloom": [0.3, 0.38],
-        "vignette": [0.3, 0.36],
-        "neonPulse": 0.55,
-        "sparkle": 0.5,
-        "flash": 0.18,
-        "exposure": 0.96,
+        "bloom": [0.32, 0.42],
+        "vignette": [0.3, 0.4],
+        "neonPulse": 0.62,
+        "sparkle": 0.58,
+        "flash": 0.22,
+        "exposure": 0.98,
         "haze": 0.013,
-        "hazePulse": 0.012
+        "hazePulse": 0.013
       }
     },
     {
@@ -85,36 +85,36 @@
       "path": {
         "type": "catmullrom",
         "points": [
-          [7, 8, 6],
-          [7, 7, 2],
-          [7, 6, -4],
-          [7, 6, -12],
-          [7, 6, -24]
+          [6, 6, 0],
+          [6, 6, -8],
+          [6.2, 5.6, -18],
+          [6.6, 5.4, -30],
+          [7.4, 5.2, -46]
         ]
       },
       "camera": {
-        "fov": [74, 68],
-        "rollDeg": [2, -2],
-        "oscillation": 0.48,
-        "tempoFov": 11,
-        "tempoRoll": 0.24,
-        "accentRoll": 0.12,
-        "tempoShake": 0.52,
-        "tempoPush": 1.6,
-        "tempoLift": 0.2,
-        "tempoWarp": 0.3,
+        "fov": [74, 70],
+        "rollDeg": [4, -4],
+        "oscillation": 0.5,
+        "tempoFov": 12,
+        "tempoRoll": 0.26,
+        "accentRoll": 0.16,
+        "tempoShake": 0.66,
+        "tempoPush": 1.9,
+        "tempoLift": 0.24,
+        "tempoWarp": 0.34,
         "ease": "easeInOut"
       },
       "fx": {
-        "bloom": [0.34, 0.42],
-        "vignette": [0.32, 0.46],
-        "neonPulse": 0.6,
-        "sparkle": 0.62,
-        "flash": 0.22,
-        "accentFlash": 0.1,
-        "exposure": 0.98,
+        "bloom": [0.36, 0.46],
+        "vignette": [0.32, 0.5],
+        "neonPulse": 0.68,
+        "sparkle": 0.66,
+        "flash": 0.26,
+        "accentFlash": 0.14,
+        "exposure": 1.02,
         "haze": 0.015,
-        "hazePulse": 0.014
+        "hazePulse": 0.015
       }
     },
     {
@@ -123,36 +123,36 @@
       "path": {
         "type": "catmullrom",
         "points": [
-          [7, 6, -24],
-          [3, 6, -36],
-          [-6, 7, -48],
-          [-14, 8, -60],
-          [-22, 9, -74]
+          [7.4, 5.2, -46],
+          [2, 6, -60],
+          [-6, 7, -74],
+          [-16, 9, -88],
+          [-28, 11, -104]
         ]
       },
       "camera": {
-        "fov": [68, 74],
-        "rollDeg": [-3, 3],
-        "oscillation": 0.52,
-        "tempoFov": 9,
-        "tempoRoll": 0.28,
-        "accentRoll": 0.18,
-        "tempoShake": 0.78,
-        "tempoPush": 2.0,
-        "tempoLift": 0.35,
-        "tempoWarp": 0.4,
+        "fov": [68, 78],
+        "rollDeg": [-5, 6],
+        "oscillation": 0.56,
+        "tempoFov": 10,
+        "tempoRoll": 0.3,
+        "accentRoll": 0.22,
+        "tempoShake": 0.86,
+        "tempoPush": 2.2,
+        "tempoLift": 0.38,
+        "tempoWarp": 0.46,
         "ease": "easeOut"
       },
       "fx": {
-        "bloom": [0.32, 0.4],
-        "vignette": [0.34, 0.52],
-        "neonPulse": 0.58,
-        "sparkle": 0.55,
-        "flash": 0.2,
-        "accentFlash": 0.12,
-        "exposure": 0.94,
+        "bloom": [0.34, 0.44],
+        "vignette": [0.36, 0.56],
+        "neonPulse": 0.64,
+        "sparkle": 0.6,
+        "flash": 0.24,
+        "accentFlash": 0.16,
+        "exposure": 0.96,
         "haze": 0.016,
-        "hazePulse": 0.015,
+        "hazePulse": 0.016,
         "fade": [29.4, 30]
       }
     }
