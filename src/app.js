@@ -223,20 +223,38 @@
       console.error(LOG_PREFIX, 'ERROR in finishInit():', error);
       console.error(LOG_PREFIX, 'Error stack:', error.stack);
 
+      // Distinguish between fatal and non-fatal errors
+      const isFatal = !composer || !renderer || !scene || !camera;
+
       // Try to show error to user
       const status = document.getElementById('init-status');
       if (status) {
-        status.textContent = 'Init error: ' + error.message;
-        status.className = 'error';
+        if (isFatal) {
+          status.textContent = 'Init error: ' + error.message;
+          status.className = 'error';
+        } else {
+          // Non-fatal: probably post-FX issue, show safe mode
+          status.textContent = '✓ Ready (safe mode)';
+          status.className = 'success';
+          console.warn(LOG_PREFIX, 'Starting in safe mode due to non-fatal error');
+        }
       }
 
-      // Still try to show start button
+      // Always try to show start button and start render loop
       setTimeout(() => {
         const spinner = document.getElementById('init-spinner');
         const buttons = document.getElementById('splash-buttons');
         if (spinner) spinner.classList.add('hidden');
         if (buttons) buttons.style.display = 'flex';
       }, 500);
+
+      // Try to start render loop if we have the basics
+      if (!isFatal && composer && !isInitialized) {
+        lastFrameTime = performance.now();
+        requestAnimationFrame(render);
+        isInitialized = true;
+        console.log(LOG_PREFIX, '✓ Render loop started (recovery mode)');
+      }
     }
   }
 
@@ -469,84 +487,113 @@
     const width = wrapper.clientWidth;
     const height = wrapper.clientHeight;
 
-    composer = new THREE.EffectComposer(renderer);
+    // Defensive polyfill: ensure CopyShader exists (required by many passes)
+    if (!THREE.CopyShader) {
+      console.warn(LOG_PREFIX, 'CopyShader missing, creating polyfill');
+      THREE.CopyShader = {
+        uniforms: { tDiffuse: { value: null }, opacity: { value: 1.0 } },
+        vertexShader: 'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
+        fragmentShader: 'uniform sampler2D tDiffuse; uniform float opacity; varying vec2 vUv; void main(){ vec4 c=texture2D(tDiffuse,vUv); gl_FragColor=vec4(c.rgb, c.a*opacity); }'
+      };
+    }
 
+    // Always start with EffectComposer and basic RenderPass
+    composer = new THREE.EffectComposer(renderer);
     const renderPass = new THREE.RenderPass(scene, camera);
     composer.addPass(renderPass);
+    console.log(LOG_PREFIX, 'Basic render pass created');
 
-    // Subtle bloom (monochrome, avoid "milky" look)
-    bloomPass = new THREE.UnrealBloomPass(
-      new THREE.Vector2(width, height),
-      0.3,  // Low strength for B&W
-      0.6,  // Radius
-      0.90  // High threshold
-    );
-    composer.addPass(bloomPass);
+    try {
+      // Validate hard dependencies for UnrealBloomPass
+      if (!THREE.CopyShader) {
+        throw new Error('CopyShader missing');
+      }
+      if (!THREE.LuminosityHighPassShader) {
+        throw new Error('LuminosityHighPassShader missing');
+      }
 
-    // Vignette + Grain shader (B&W only)
-    // Create ShaderMaterial directly to avoid UniformsUtils dependency
-    const bwMaterial = new THREE.ShaderMaterial({
-      uniforms: {
-        tDiffuse: { value: null },
-        uVignette: { value: 0.4 },
-        uGrain: { value: 0.12 },
-        uTime: { value: 0 }
-      },
-      vertexShader: `
-        varying vec2 vUv;
-        void main() {
-          vUv = uv;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: `
-        uniform sampler2D tDiffuse;
-        uniform float uVignette;
-        uniform float uGrain;
-        uniform float uTime;
-        varying vec2 vUv;
+      // Create bloom pass
+      bloomPass = new THREE.UnrealBloomPass(
+        new THREE.Vector2(width, height),
+        0.3,  // Low strength for B&W
+        0.6,  // Radius
+        0.90  // High threshold
+      );
+      composer.addPass(bloomPass);
+      console.log(LOG_PREFIX, '✓ Bloom pass created');
 
-        float random(vec2 st) {
-          return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
-        }
+      // Vignette + Grain shader (B&W only)
+      // Create ShaderMaterial directly to avoid UniformsUtils dependency
+      const bwMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+          tDiffuse: { value: null },
+          uVignette: { value: 0.4 },
+          uGrain: { value: 0.12 },
+          uTime: { value: 0 }
+        },
+        vertexShader: `
+          varying vec2 vUv;
+          void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          uniform sampler2D tDiffuse;
+          uniform float uVignette;
+          uniform float uGrain;
+          uniform float uTime;
+          varying vec2 vUv;
 
-        float filmGrain(vec2 uv, float time) {
-          vec2 uvRandom = uv;
-          uvRandom.y *= random(vec2(uvRandom.y, time));
-          return random(uvRandom);
-        }
+          float random(vec2 st) {
+            return fract(sin(dot(st.xy, vec2(12.9898, 78.233))) * 43758.5453123);
+          }
 
-        void main() {
-          vec4 color = texture2D(tDiffuse, vUv);
+          float filmGrain(vec2 uv, float time) {
+            vec2 uvRandom = uv;
+            uvRandom.y *= random(vec2(uvRandom.y, time));
+            return random(uvRandom);
+          }
 
-          // Force monochrome (luminance)
-          float luma = dot(color.rgb, vec3(0.299, 0.587, 0.114));
-          color.rgb = vec3(luma);
+          void main() {
+            vec4 color = texture2D(tDiffuse, vUv);
 
-          // Strong vignette
-          vec2 uv = vUv * 2.0 - 1.0;
-          float dist = length(uv);
-          float vignette = smoothstep(0.9, 0.2, dist * uVignette * 3.5);
-          color.rgb *= vignette;
+            // Force monochrome (luminance)
+            float luma = dot(color.rgb, vec3(0.299, 0.587, 0.114));
+            color.rgb = vec3(luma);
 
-          // Film grain
-          float grain = filmGrain(vUv * 3.0, uTime * 10.0) * uGrain;
-          color.rgb += grain - uGrain * 0.5;
+            // Strong vignette
+            vec2 uv = vUv * 2.0 - 1.0;
+            float dist = length(uv);
+            float vignette = smoothstep(0.9, 0.2, dist * uVignette * 3.5);
+            color.rgb *= vignette;
 
-          // Contrast boost for B&W
-          color.rgb = (color.rgb - 0.5) * 1.2 + 0.5;
-          color.rgb = clamp(color.rgb, 0.0, 1.0);
+            // Film grain
+            float grain = filmGrain(vUv * 3.0, uTime * 10.0) * uGrain;
+            color.rgb += grain - uGrain * 0.5;
 
-          gl_FragColor = color;
-        }
-      `
-    });
+            // Contrast boost for B&W
+            color.rgb = (color.rgb - 0.5) * 1.2 + 0.5;
+            color.rgb = clamp(color.rgb, 0.0, 1.0);
 
-    vignettePass = new THREE.ShaderPass(bwMaterial);
-    vignettePass.renderToScreen = true;
-    composer.addPass(vignettePass);
+            gl_FragColor = color;
+          }
+        `
+      });
 
-    console.log(LOG_PREFIX, 'Post-processing setup (B&W optimized)');
+      vignettePass = new THREE.ShaderPass(bwMaterial);
+      vignettePass.renderToScreen = true;
+      composer.addPass(vignettePass);
+      console.log(LOG_PREFIX, '✓ B&W vignette pass created');
+
+      console.log(LOG_PREFIX, '✓ Post-processing setup complete (full FX)');
+    } catch (error) {
+      console.warn(LOG_PREFIX, 'Post-FX disabled (safe mode):', error.message);
+      // Composer already has renderPass, so playback will still work
+      // Just render directly without effects
+      renderPass.renderToScreen = true;
+      showStatus('Post-FX disabled (safe mode)', 3000);
+    }
   }
 
   // ============================================================================
