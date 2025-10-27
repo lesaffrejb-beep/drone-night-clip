@@ -465,10 +465,12 @@
             typeof THREE.UnrealBloomPass !== 'undefined' &&
             typeof THREE.RenderPass !== 'undefined' &&
             typeof THREE.ShaderPass !== 'undefined' &&
-            typeof THREE.Pass !== 'undefined') {
+            typeof THREE.Pass !== 'undefined' &&
+            typeof THREE.CopyShader !== 'undefined' &&
+            typeof THREE.LuminosityHighPassShader !== 'undefined') {
 
           clearInterval(checkInterval);
-          console.log('[DRONE] ✓ All vendor files loaded successfully');
+          console.log('[DRONE] ✓ All vendor files loaded successfully (including shaders)');
 
           // Load main WebGL app
           const script = document.createElement('script');
@@ -482,7 +484,10 @@
         } else if (elapsed >= MAX_WAIT) {
           clearInterval(checkInterval);
 
-          console.warn('[DRONE] Three.js not loaded, switching to 2D fallback');
+          console.warn('[DRONE] Three.js or required shaders not loaded after 5s, switching to 2D fallback');
+          console.warn('[DRONE] Missing deps check: THREE=' + (typeof THREE !== 'undefined') +
+                      ', CopyShader=' + (typeof THREE !== 'undefined' && typeof THREE.CopyShader !== 'undefined') +
+                      ', LuminosityHighPassShader=' + (typeof THREE !== 'undefined' && typeof THREE.LuminosityHighPassShader !== 'undefined'));
           loadFallback2D();
         }
       }, CHECK_INTERVAL);
