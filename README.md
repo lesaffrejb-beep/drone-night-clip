@@ -5,7 +5,9 @@
 ## ✨ V2 Features
 
 ### Anti-Fragile Design
-- **Smart Protocol Detection**: file:// shows helpful error immediately, https:// waits 30s
+- **Zero CDN Dependencies**: All Three.js files vendored locally (~690KB)
+- **Works Offline**: Loads instantly from vendor/ directory
+- **Auto 2D Fallback**: Switches to Canvas 2D if WebGL unavailable
 - **Inline JSON Fallback**: Embedded scene data if fetch fails
 - **No Audio Required**: Beat timeline fallback, visuals work without audio
 - **Never Crashes**: Defensive null checks everywhere
@@ -33,24 +35,44 @@
 
 ## 🚀 Quick Start
 
-### 1. GitHub Pages (Recommended)
+### 1. File Mode (Simplest - Works Offline!)
+
+**Just open the file** - No server needed!
+
+```bash
+# macOS
+open index.html
+
+# Windows
+start index.html
+
+# Linux
+xdg-open index.html
+```
+
+✅ Works instantly with vendored Three.js files
+✅ No network required
+✅ Full 3D rendering
+✅ Auto-loads 2D fallback if WebGL unavailable
+
+**Note:** Presets require HTTP server. Default scene works in file:// mode.
+
+### 2. GitHub Pages (Production)
 
 **Live Demo**: `https://lesaffrejb-beep.github.io/drone-night-clip/`
 
 **Deploy Your Own:**
-1. Go to repo **Settings** → **Pages**
-2. Source: `main` branch, `/` root
-3. Save
-4. Wait ~1 minute
+1. Push to **`main`** branch
+2. Go to repo **Settings** → **Pages**
+3. Source: `main` branch, `/` root
+4. Save and wait ~1 minute
 5. Visit: `https://<your-username>.github.io/drone-night-clip/`
 
-✅ CDN loads properly over https://
-✅ No "Local Mode" errors
+✅ Instant loading (no CDN delays)
+✅ Works on slow networks
 ✅ Full functionality (audio, presets, recording)
 
-### 2. Local Development Server
-
-**Required for local testing** (file:// won't load CDN scripts)
+### 3. Local Development Server (Best for Presets)
 
 ```bash
 # Python 3 (Simple & Universal)
@@ -65,11 +87,11 @@ python3 -m http.server 8000
 npx http-server -p 8000
 ```
 
-✅ Proper CDN loading
-✅ All features work
+✅ All presets work (insane.json, dark.json, etc.)
 ✅ Fast iteration
+✅ Audio files loadable
 
-### 3. Audio Files (Optional)
+## 🎵 Audio Files (Optional)
 
 Add your own audio track:
 
@@ -186,15 +208,14 @@ ffmpeg -i drone-night-*.webm -c:v libx264 -vf "scale=1080:1920" -crf 23 output.m
 2. **Run local server**: `python3 -m http.server 8000` → visit `http://localhost:8000`
 3. **VS Code Live Server**: Install extension, right-click index.html → Open with Live Server
 
-### Infinite Loading / CDN Timeout
+### Infinite Loading
 
-**Cause**: Network blocking CDN, or very slow connection.
+**FIXED:** No longer possible with vendored files!
 
-**Solutions**:
-1. **Refresh the page** - sometimes CDN needs retry
-2. **Check network** - ensure you can access unpkg.com
-3. **Use GitHub Pages** - better CDN reliability on https://
-4. **Wait up to 30 seconds** - production timeout is extended for slow networks
+If you still see loading:
+1. **Check console (F12)** - Look for [DRONE] logs
+2. **Verify vendor files** - Ensure vendor/three/*.js files exist
+3. **Clear cache** - Hard refresh (Ctrl+Shift+R / Cmd+Shift+R)
 
 ### Play Button Does Nothing
 
@@ -225,6 +246,29 @@ ffmpeg -i drone-night-*.webm -c:v libx264 -vf "scale=1080:1920" -crf 23 output.m
 
 ## 📊 Technical Details
 
+### Vendor Architecture (Zero CDN)
+
+All Three.js dependencies are vendored locally in `vendor/three/`:
+
+| File | Size | Purpose |
+|------|------|---------|
+| three.min.js | 655KB | Core Three.js r160 library |
+| Pass.js | 1.6KB | Base class for post-processing |
+| EffectComposer.js | 4.3KB | Post-processing pipeline |
+| RenderPass.js | 1.7KB | Basic scene render pass |
+| ShaderPass.js | 1.5KB | Custom shader pass |
+| UnrealBloomPass.js | 12KB | Bloom effect (Unreal style) |
+| CopyShader.js | 619B | Simple copy shader |
+| LuminosityHighPassShader.js | 1.2KB | High-pass filter for bloom |
+
+**Total:** ~690KB (minified, loads instantly from local disk)
+
+**Benefits:**
+- ✅ Works offline and in file:// mode
+- ✅ No network failures
+- ✅ Instant loading (no CDN DNS/HTTP overhead)
+- ✅ Version locked (r160)
+
 ### B&W Shader
 - **Luminance conversion**: `dot(rgb, vec3(0.299, 0.587, 0.114))`
 - **Grain**: Temporal + spatial noise
@@ -237,12 +281,14 @@ ffmpeg -i drone-night-*.webm -c:v libx264 -vf "scale=1080:1920" -crf 23 output.m
 - **Culling**: Fog hides distant objects
 - **No allocations**: Reused buffers in render loop
 
-### Failsafes
-1. **Inline scene**: Embedded in `<script id="scene-inline">`
-2. **Emergency scene**: Hardcoded minimal flight
-3. **Render loop**: Always runs, never blocks
-4. **UI**: Setup before data load
-5. **Audio**: Optional, never required
+### Failsafes (Anti-Fragile Stack)
+1. **Vendor files**: Local Three.js → no network dependency
+2. **2D fallback**: Auto-loads if WebGL unavailable (fallback2d.js)
+3. **Inline scene**: Embedded in `<script id="scene-inline">`
+4. **Emergency scene**: Hardcoded minimal flight in app.js
+5. **Render loop**: Always runs, never blocks
+6. **UI**: Setup before data load
+7. **Audio**: Optional, never required
 
 ## 📄 License
 
