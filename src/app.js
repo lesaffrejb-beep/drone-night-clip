@@ -49,6 +49,14 @@
   let bloomPass = null;
   let vignettePass = null;
 
+  // UI references
+  let playPauseBtn = null;
+  let playbackProgressEl = null;
+  let modePillEl = null;
+  let audioFilenameEl = null;
+  let presetLabelEl = null;
+  let controlDeckEl = null;
+
   // ============================================================================
   // INITIALIZATION - TWO PHASE (NEVER BLOCKS)
   // ============================================================================
@@ -191,6 +199,10 @@
       // Mark as initialized
       isInitialized = true;
 
+      refreshPresetUI(sceneData);
+      updateTimeline();
+      syncPlayStateUI();
+
       // Show UI controls after a brief moment
       setTimeout(() => {
         console.log(LOG_PREFIX, 'Showing UI controls...');
@@ -215,6 +227,10 @@
         if (controls) {
           controls.style.display = 'flex';
           console.log(LOG_PREFIX, '✓ Controls visible');
+        }
+
+        if (controlDeckEl) {
+          controlDeckEl.classList.add('visible');
         }
       }, 500);
 
@@ -775,6 +791,10 @@
       showStatus('Audio loaded', 2000);
       console.log(LOG_PREFIX, '✓ Audio ready');
 
+      if (audioFilenameEl) {
+        audioFilenameEl.textContent = audioFile.name;
+      }
+
       if (isPlaying) {
         audioElement.currentTime = currentTime;
         audioElement.play().catch(err => {
@@ -842,6 +862,7 @@
       // Restart from beginning
       currentTime = 0;
       isPlaying = true;
+      syncPlayStateUI();
       if (audioElement) {
         audioElement.currentTime = 0;
         audioElement.play().catch(e => console.warn(LOG_PREFIX, 'Audio play error:', e));
@@ -895,6 +916,7 @@
           if (isRecording) {
             stopRecording();
             isPlaying = false;
+            syncPlayStateUI();
           } else {
             currentTime = 0;
           }
@@ -922,6 +944,7 @@
       }
 
       updateHUD();
+      updateTimeline();
 
     } catch (err) {
       console.error(LOG_PREFIX, 'Render error:', err);
@@ -947,6 +970,20 @@
   function setupUI() {
     console.log(LOG_PREFIX, 'Setting up UI...');
 
+    controlDeckEl = document.getElementById('control-deck');
+    playPauseBtn = document.getElementById('btn-playpause');
+    playbackProgressEl = document.getElementById('playback-progress');
+    modePillEl = document.getElementById('mode-pill');
+    audioFilenameEl = document.getElementById('audio-filename');
+    presetLabelEl = document.getElementById('preset-label');
+
+    if (audioFilenameEl) {
+      audioFilenameEl.textContent = 'No track';
+    }
+    if (presetLabelEl) {
+      presetLabelEl.textContent = 'Default';
+    }
+
     // Start button (splash screen)
     const btnStart = document.getElementById('btn-start');
     if (btnStart) {
@@ -968,7 +1005,41 @@
         // Start playing and recording
         isPlaying = true;
         startRecording(); // Auto-start recording
+        syncPlayStateUI();
         console.log(LOG_PREFIX, 'Playback and recording started');
+      });
+    }
+
+    if (playPauseBtn) {
+      playPauseBtn.addEventListener('click', () => {
+        if (!isInitialized) return;
+
+        isPlaying = !isPlaying;
+        if (isPlaying) {
+          if (audioElement) {
+            audioElement.play().catch(err => {
+              console.warn(LOG_PREFIX, 'Audio play error:', err);
+            });
+          }
+        } else if (audioElement) {
+          audioElement.pause();
+        }
+
+        syncPlayStateUI();
+        console.log(LOG_PREFIX, isPlaying ? 'Playing' : 'Paused');
+      });
+    }
+
+    const btnReset = document.getElementById('btn-reset');
+    if (btnReset) {
+      btnReset.addEventListener('click', () => {
+        currentTime = 0;
+        if (audioElement) {
+          audioElement.currentTime = 0;
+        }
+        updateTimeline();
+        showStatus('↺ Rewound to start', 1400);
+        console.log(LOG_PREFIX, 'Timeline reset');
       });
     }
 
@@ -1002,6 +1073,8 @@
               sceneData = await response.json();
               currentTime = 0;
               currentShot = null;
+              refreshPresetUI(sceneData);
+              updateTimeline();
               showStatus('✓ Insane preset loaded', 2000);
               console.log(LOG_PREFIX, '✓ Insane preset loaded');
             } else {
@@ -1014,14 +1087,29 @@
             await loadSceneDataAsync();
             currentTime = 0;
             currentShot = null;
+            refreshPresetUI(sceneData);
+            updateTimeline();
           }
         } else {
           // Load default
           await loadSceneDataAsync();
           currentTime = 0;
           currentShot = null;
+          refreshPresetUI(sceneData);
+          updateTimeline();
           showStatus('✓ Default scene loaded', 2000);
         }
+
+        if (audioElement) {
+          audioElement.currentTime = currentTime;
+          if (isPlaying) {
+            audioElement.play().catch(err => {
+              console.warn(LOG_PREFIX, 'Audio play error:', err);
+            });
+          }
+        }
+
+        syncPlayStateUI();
       });
     }
 
@@ -1047,6 +1135,7 @@
             } else if (!isPlaying && audioElement) {
               audioElement.pause();
             }
+            syncPlayStateUI();
             console.log(LOG_PREFIX, isPlaying ? 'Playing' : 'Paused');
           }
           break;
@@ -1077,6 +1166,7 @@
           currentTime = 0;
           if (audioElement) audioElement.currentTime = 0;
           console.log(LOG_PREFIX, 'Restarted');
+          updateTimeline();
           break;
 
         case 's':
@@ -1157,6 +1247,34 @@
       });
     } catch (err) {
       console.error(LOG_PREFIX, 'Screenshot failed:', err);
+    }
+  }
+
+  function updateTimeline() {
+    if (!playbackProgressEl) return;
+
+    const duration = (sceneData && sceneData.meta && sceneData.meta.duration) || 18;
+    const progress = duration > 0 ? Math.min(Math.max(currentTime / duration, 0), 1) : 0;
+    playbackProgressEl.style.width = `${(progress * 100).toFixed(2)}%`;
+  }
+
+  function refreshPresetUI(data) {
+    const title = data && data.meta && data.meta.title ? data.meta.title : 'Default';
+
+    if (presetLabelEl) {
+      presetLabelEl.textContent = title;
+    }
+
+    if (modePillEl) {
+      const base = title.toUpperCase();
+      const label = base.includes('MODE') ? base : `${base} MODE`;
+      modePillEl.textContent = label.length > 26 ? `${label.slice(0, 26)}…` : label;
+    }
+  }
+
+  function syncPlayStateUI() {
+    if (playPauseBtn) {
+      playPauseBtn.textContent = isPlaying ? 'Pause' : 'Play';
     }
   }
 
