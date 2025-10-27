@@ -110,12 +110,17 @@
   }
 
   async function loadSceneDataAsync() {
-    // Try to load scene.json, but don't block if it fails
+    // Try to load scene.json with timeout, but don't block if it fails
     try {
-      const response = await fetch('scene.json');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout
+
+      const response = await fetch('scene.json', { signal: controller.signal });
+      clearTimeout(timeoutId);
+
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
       sceneData = await response.json();
-      console.log(LOG_PREFIX, 'Loaded scene.json');
+      console.log(LOG_PREFIX, '✓ Loaded scene.json');
     } catch (err) {
       console.warn(LOG_PREFIX, 'Failed to fetch scene.json:', err.message);
       // Fallback to inline scene
@@ -772,13 +777,16 @@
 
         const a = document.createElement('a');
         a.href = url;
-        const title = sceneData ? sceneData.meta.title.replace(/\s+/g, '-') : 'drone-night';
-        a.download = `${title}-${Date.now()}.webm`;
+
+        // Format: drone-night-clip-YYYY-MM-DD-HHmmss.webm
+        const now = new Date();
+        const timestamp = now.toISOString().replace(/:/g, '').replace(/\..+/, '').replace('T', '-');
+        a.download = `drone-night-clip-${timestamp}.webm`;
         a.click();
 
         URL.revokeObjectURL(url);
-        showStatus('Recording saved', 3000);
-        console.log(LOG_PREFIX, '✓ Recording saved');
+        showStatus('✓ Recording saved', 3000);
+        console.log(LOG_PREFIX, `✓ Recording saved: drone-night-clip-${timestamp}.webm`);
       };
 
       mediaRecorder.start(100);
@@ -910,9 +918,10 @@
         // Hide splash
         document.getElementById('splash').classList.add('hidden');
 
-        // Start playing
+        // Start playing and recording
         isPlaying = true;
-        console.log(LOG_PREFIX, 'Playback started');
+        startRecording(); // Auto-start recording
+        console.log(LOG_PREFIX, 'Playback and recording started');
       });
     }
 
@@ -933,30 +942,38 @@
       presetSelect.addEventListener('change', async (e) => {
         const preset = e.target.value;
         if (preset === 'insane') {
-          // Load insane preset (inline or fetch)
+          // Load insane preset with timeout
           console.log(LOG_PREFIX, 'Loading insane preset...');
           try {
-            const response = await fetch('presets/insane.json');
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+            const response = await fetch('presets/insane.json', { signal: controller.signal });
+            clearTimeout(timeoutId);
+
             if (response.ok) {
               sceneData = await response.json();
               currentTime = 0;
               currentShot = null;
-              showStatus('Insane preset loaded', 2000);
-              console.log(LOG_PREFIX, 'Insane preset loaded');
+              showStatus('✓ Insane preset loaded', 2000);
+              console.log(LOG_PREFIX, '✓ Insane preset loaded');
             } else {
-              throw new Error('Fetch failed');
+              throw new Error(`HTTP ${response.status}`);
             }
           } catch (err) {
-            console.warn(LOG_PREFIX, 'Failed to load insane preset:', err);
-            showStatus('Preset load failed', 2000);
+            console.warn(LOG_PREFIX, 'Failed to load insane preset, falling back to default:', err.message);
+            showStatus('⚠ Preset unavailable, using default', 3000);
+            // Fallback to default
+            await loadSceneDataAsync();
+            currentTime = 0;
+            currentShot = null;
           }
         } else {
           // Load default
-          loadSceneDataAsync().then(() => {
-            currentTime = 0;
-            currentShot = null;
-            showStatus('Default scene loaded', 2000);
-          });
+          await loadSceneDataAsync();
+          currentTime = 0;
+          currentShot = null;
+          showStatus('✓ Default scene loaded', 2000);
         }
       });
     }
