@@ -45,7 +45,12 @@ export function refreshPresetUI(data) {
   }
 
   if (runtime.bpmInputEl && data && data.meta && data.meta.bpm) {
-    runtime.bpmInputEl.value = Math.round(data.meta.bpm);
+    const bpm = Math.round(data.meta.bpm);
+    runtime.bpmInputEl.value = bpm;
+    const bpmValueEl = document.getElementById('bpm-value');
+    if (bpmValueEl) {
+      bpmValueEl.textContent = bpm;
+    }
   }
 }
 

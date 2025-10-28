@@ -318,18 +318,19 @@
 
     #splash-buttons {
       display: flex;
-      flex-direction: column;
-      gap: 14px;
-      margin-top: 32px;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      margin-top: 28px;
+      flex-wrap: wrap;
       animation: fade-in-up 0.5s ease 0.2s backwards;
     }
 
     #splash-controls {
       display: flex;
-      gap: 14px;
-      margin-top: 28px;
-      justify-content: center;
-      flex-wrap: wrap;
+      flex-direction: column;
+      gap: 18px;
+      margin-top: 24px;
       padding-top: 24px;
       border-top: 1px solid rgba(238, 238, 238, 0.08);
       animation: fade-in-up 0.5s ease 0.4s backwards;
@@ -338,15 +339,24 @@
     .control-field {
       display: flex;
       flex-direction: column;
-      gap: 6px;
-      align-items: flex-start;
+      gap: 12px;
+      align-items: stretch;
     }
 
     .control-field label {
-      font-size: 10px;
+      font-size: 11px;
       text-transform: uppercase;
+      letter-spacing: 1.8px;
+      color: rgba(255, 255, 255, 0.65);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #bpm-value {
+      font-size: 12px;
       letter-spacing: 1.4px;
-      color: rgba(255, 255, 255, 0.55);
+      color: rgba(255, 255, 255, 0.75);
     }
 
     @keyframes fade-in-up {
@@ -376,43 +386,50 @@
       border-color: rgba(255, 255, 255, 0.4);
     }
 
-    select {
-      background: rgba(0, 0, 0, 0.6);
-      color: #f2f2f2;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      padding: 10px 18px;
+    #bpm-input {
+      appearance: none;
+      width: 100%;
+      height: 6px;
       border-radius: 999px;
-      font-family: inherit;
-      font-size: 12px;
-      cursor: pointer;
-      transition: all 0.25s;
-      letter-spacing: 0.6px;
-      text-transform: uppercase;
-    }
-
-    select:hover {
-      background: rgba(255, 255, 255, 0.08);
-      border-color: rgba(255, 255, 255, 0.35);
-    }
-
-    input[type="number"] {
-      background: rgba(0, 0, 0, 0.6);
-      color: #f5f5f5;
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      border-radius: 999px;
-      padding: 10px 16px;
-      font-family: inherit;
-      font-size: 12px;
-      text-align: center;
-      letter-spacing: 0.8px;
-      width: 88px;
-      transition: border-color 0.25s, background 0.25s;
-    }
-
-    input[type="number"]:focus {
+      background: rgba(255, 255, 255, 0.12);
       outline: none;
-      border-color: rgba(255, 255, 255, 0.45);
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+    }
+
+    #bpm-input::-webkit-slider-thumb {
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(140deg, rgba(255, 255, 255, 0.92), rgba(200, 200, 200, 0.6));
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
+      border: none;
+    }
+
+    #bpm-input::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: linear-gradient(140deg, rgba(255, 255, 255, 0.92), rgba(200, 200, 200, 0.6));
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
+      border: none;
+    }
+
+    #bpm-input::-moz-range-track {
+      background: transparent;
+    }
+
+    .ghost {
       background: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.88);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+    }
+
+    .ghost:hover {
+      background: rgba(255, 255, 255, 0.18);
     }
 
     /* HUD */
@@ -801,18 +818,18 @@
           <div id="init-status">Initializing...</div>
 
           <div id="splash-buttons" style="display: none;">
-            <button id="btn-start" class="primary">▶ Start Experience</button>
+            <button id="btn-start" class="primary">Play</button>
+            <button id="preset-30s" class="ghost">Preset 30s</button>
           </div>
 
           <div id="splash-controls" style="display: none;">
-            <input type="file" id="input-audio-splash" accept="audio/*" title="Load Audio">
-            <select id="preset-select">
-              <option value="">Default</option>
-              <option value="insane">Insane</option>
-            </select>
             <div class="control-field">
-              <label for="input-bpm">BPM</label>
-              <input type="number" id="input-bpm" min="40" max="220" value="118">
+              <label for="input-audio-splash">Ta musique</label>
+              <input type="file" id="input-audio-splash" accept="audio/*" title="Charger un morceau">
+            </div>
+            <div class="control-field">
+              <label for="bpm-input">BPM <span id="bpm-value">118</span></label>
+              <input type="range" id="bpm-input" min="40" max="220" step="1" value="118">
             </div>
           </div>
 
@@ -906,9 +923,9 @@
           // Load main WebGL app
           const script = document.createElement('script');
           script.type = 'module';
-          script.src = 'src/main.js';
+          script.src = './src/app.js';
           script.onerror = () => {
-            console.error('[DRONE] Failed to load main.js');
+            console.error('[DRONE] Failed to load app.js');
             loadFallback2D();
           };
           document.body.appendChild(script);
@@ -935,7 +952,7 @@
           if (window.initFallback2D) {
             window.initFallback2D();
           } else {
-            showFatalError('Fallback 2D initialization failed');
+          showFatalError('Fallback 2D initialization failed');
           }
         };
         fallback.onerror = () => {
